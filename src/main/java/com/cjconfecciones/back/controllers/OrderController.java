@@ -1,5 +1,6 @@
 package com.cjconfecciones.back.controllers;
 
+import com.cjconfecciones.back.entities.Cliente;
 import com.cjconfecciones.back.entities.Persona;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Named;
@@ -39,9 +40,16 @@ public class OrderController {
             persona.setDireccion(requestObject.getJsonObject("persona").getString("direccion"));
             em.persist(persona);
             t.commit();
+            t.begin();
+            Cliente cliente = new Cliente();
+            cliente.setIdpersona(persona.getCedula());
+            em.persist(cliente);
+            log.info("STORING CLIENTE");
+
+            t.commit();
             response = Json.createObjectBuilder().add("error","1");
         }catch (Exception e){
-            log.log(Level.SEVERE, "ERROR WHEN STORING THE NEW ORDER");
+            log.log(Level.SEVERE, "ERROR WHEN STORING THE NEW ORDER",e);
             t.rollback();
         }
         return  response.build();
