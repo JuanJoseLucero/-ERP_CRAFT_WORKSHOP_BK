@@ -82,6 +82,7 @@
 						<layer>postgresql-datasource</layer>
 					</layers>
 				</configuration>
+
 				<executions>
 					<execution>
 						<goals>

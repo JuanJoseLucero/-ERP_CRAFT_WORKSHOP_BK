@@ -7,9 +7,9 @@
     <persistence-unit name="unitPersistence" transaction-type="RESOURCE_LOCAL" >
         <properties>
             <property name="jakarta.persistence.jdbc.driver" value="org.postgresql.Driver" />
-            <property name="jakarta.persistence.jdbc.url" value="jdbc:postgresql://localhost:5432/bd?currentSchema=user" />
-            <property name="jakarta.persistence.jdbc.user" value="user" />
-            <property name="jakarta.persistence.jdbc.password" value="pass"/>
+            <property name="jakarta.persistence.jdbc.url" value="jdbc:postgresql://localhost:5432/perchaonline?currentSchema=cjconfecciones" />
+            <property name="jakarta.persistence.jdbc.user" value="percha" />
+            <property name="jakarta.persistence.jdbc.password" value="4G3TR0224n41dPercha"/>
             <!-- Properties for Hibernate -->
             <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
             <property name="hibernate.hbm2ddl.auto" value="none"/>

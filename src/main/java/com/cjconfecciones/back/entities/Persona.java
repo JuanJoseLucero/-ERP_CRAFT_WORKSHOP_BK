@@ -1,4 +1,4 @@
-package com.cjconfecciones.back.pojos;
+package com.cjconfecciones.back.entities;
 
 
 import jakarta.persistence.Entity;

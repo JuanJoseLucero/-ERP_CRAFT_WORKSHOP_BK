@@ -1,12 +1,9 @@
 package com.cjconfecciones.back.controllers;
 
-import com.cjconfecciones.back.pojos.Cliente;
-import com.cjconfecciones.back.pojos.Persona;
+import com.cjconfecciones.back.entities.Persona;
 import jakarta.enterprise.context.RequestScoped;
-import jakarta.faces.view.ViewScoped;
 import jakarta.inject.Named;
 import jakarta.persistence.*;
-import jakarta.transaction.Transaction;
 
 import java.io.Serializable;
 import java.util.logging.Logger;
