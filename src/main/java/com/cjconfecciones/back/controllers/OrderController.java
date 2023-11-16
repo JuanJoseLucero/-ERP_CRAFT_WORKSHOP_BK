@@ -1,10 +1,12 @@
 package com.cjconfecciones.back.controllers;
 
 import com.cjconfecciones.back.entities.Cliente;
+import com.cjconfecciones.back.entities.PedidoCabecera;
 import com.cjconfecciones.back.entities.Persona;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Named;
 import jakarta.json.Json;
+import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.persistence.EntityManager;
@@ -13,6 +15,7 @@ import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.PersistenceUnit;
 
 import javax.swing.*;
+import java.text.SimpleDateFormat;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,12 +42,27 @@ public class OrderController {
             persona.setTelefono(requestObject.getJsonObject("persona").getString("telefono"));
             persona.setDireccion(requestObject.getJsonObject("persona").getString("direccion"));
             em.persist(persona);
-            t.commit();
-            t.begin();
+
             Cliente cliente = new Cliente();
             cliente.setIdpersona(persona.getCedula());
             em.persist(cliente);
             log.info("STORING CLIENTE");
+
+            PedidoCabecera pedidoCabecera = new PedidoCabecera();
+            pedidoCabecera.setCcliente(cliente.getId());
+            pedidoCabecera.setEstado(requestObject.getJsonObject("cabecera").getString("estado"));
+            pedidoCabecera.setTotal(requestObject.getJsonObject("cabecera").getJsonNumber("total").bigDecimalValue());
+            String fechaCadena = requestObject.getJsonObject("cabecera").getString("fecha");
+            SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+            pedidoCabecera.setFecha(sdf.parse(fechaCadena));
+            em.persist(pedidoCabecera);
+
+            //JsonObject cabecera = requestObject.getJsonObject("detalle")
+            JsonArray detalle = requestObject.getJsonArray("detalle");
+
+            for (int i = 0; i< detalle.size(); i++){
+
+            }
 
             t.commit();
             response = Json.createObjectBuilder().add("error","1");
