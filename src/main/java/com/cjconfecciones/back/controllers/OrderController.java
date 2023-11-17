@@ -2,6 +2,7 @@ package com.cjconfecciones.back.controllers;
 
 import com.cjconfecciones.back.entities.Cliente;
 import com.cjconfecciones.back.entities.PedidoCabecera;
+import com.cjconfecciones.back.entities.PedidoDetalle;
 import com.cjconfecciones.back.entities.Persona;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Named;
@@ -16,6 +17,7 @@ import jakarta.persistence.PersistenceUnit;
 
 import javax.swing.*;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -58,16 +60,22 @@ public class OrderController {
             em.persist(pedidoCabecera);
 
             //JsonObject cabecera = requestObject.getJsonObject("detalle")
-            JsonArray detalle = requestObject.getJsonArray("detalle");
-
-            for (int i = 0; i< detalle.size(); i++){
-
+            JsonArray detallesJson = requestObject.getJsonArray("detalles");
+            for (int i = 0; i< detallesJson.size(); i++){
+                JsonObject detalle  =detallesJson.getJsonObject(i);
+                PedidoDetalle pedidoDetalle = new PedidoDetalle();
+                pedidoDetalle.setFecha(new Date());
+                pedidoDetalle.setUnidades(detalle.getJsonNumber("unidades").bigDecimalValue());
+                pedidoDetalle.setDescripcion(detalle.getString("descripcion"));
+                pedidoDetalle.setVunitario(detalle.getJsonNumber("vunitario").bigDecimalValue());
+                pedidoDetalle.setTotal(detalle.getJsonNumber("total").bigDecimalValue());
+                em.persist(pedidoDetalle);
             }
-
             t.commit();
-            response = Json.createObjectBuilder().add("error","1");
+            response = Json.createObjectBuilder().add("error","0");
         }catch (Exception e){
             log.log(Level.SEVERE, "ERROR WHEN STORING THE NEW ORDER",e);
+            response = Json.createObjectBuilder().add("error","1");
             t.rollback();
         }
         return  response.build();

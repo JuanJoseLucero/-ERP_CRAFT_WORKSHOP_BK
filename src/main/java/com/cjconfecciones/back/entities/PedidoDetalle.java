@@ -1,9 +1,7 @@
 package com.cjconfecciones.back.entities;
 
 import jakarta.inject.Named;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,6 +18,7 @@ import java.util.Date;
 @Table(name = "TPEDIDODETALLE", schema = "cjconfecciones")
 public class PedidoDetalle {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     private Date fecha;
     private BigDecimal unidades;
