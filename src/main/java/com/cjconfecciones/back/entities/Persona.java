@@ -19,7 +19,6 @@ public class Persona {
     @Id
     private String cedula;
     private String nombre;
-    private String apellido;
     private String telefono;
     private String direccion;
 }

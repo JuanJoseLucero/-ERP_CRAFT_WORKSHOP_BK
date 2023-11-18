@@ -4,6 +4,7 @@ import com.cjconfecciones.back.entities.Cliente;
 import com.cjconfecciones.back.entities.PedidoCabecera;
 import com.cjconfecciones.back.entities.PedidoDetalle;
 import com.cjconfecciones.back.entities.Persona;
+import com.cjconfecciones.back.util.EnumCJ;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Named;
 import jakarta.json.Json;
@@ -38,11 +39,17 @@ public class OrderController {
             log.info("INIT METHOD NEW ORDER");
             log.info("STORING PERSON");
             t.begin();
+            /*
             persona.setCedula(requestObject.getJsonObject("persona").getString("cedula"));
             persona.setNombre(requestObject.getJsonObject("persona").getString("nombre"));
             persona.setApellido(requestObject.getJsonObject("persona").getString("apellido"));
             persona.setTelefono(requestObject.getJsonObject("persona").getString("telefono"));
             persona.setDireccion(requestObject.getJsonObject("persona").getString("direccion"));
+            */
+            persona.setCedula(requestObject.getString("identificacion"));
+            persona.setNombre(requestObject.getString("nombres"));
+            persona.setTelefono(requestObject.getString("telefono"));
+            persona.setDireccion(requestObject.getString("direccion"));
             em.persist(persona);
 
             Cliente cliente = new Cliente();
@@ -52,22 +59,25 @@ public class OrderController {
 
             PedidoCabecera pedidoCabecera = new PedidoCabecera();
             pedidoCabecera.setCcliente(cliente.getId());
-            pedidoCabecera.setEstado(requestObject.getJsonObject("cabecera").getString("estado"));
-            pedidoCabecera.setTotal(requestObject.getJsonObject("cabecera").getJsonNumber("total").bigDecimalValue());
-            String fechaCadena = requestObject.getJsonObject("cabecera").getString("fecha");
+            pedidoCabecera.setEstado(EnumCJ.ESTADO_ABIERTO.getEstado());
+            //pedidoCabecera.setTotal(requestObject.getJsonObject("cabecera").getJsonNumber("total").bigDecimalValue());
+            pedidoCabecera.setTotal(requestObject.getJsonNumber("total").bigDecimalValue());
+            //String fechaCadena = requestObject.getJsonObject("cabecera").getString("fecha");
+            String fechaCadena = requestObject.getString("fecha");
             SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
             pedidoCabecera.setFecha(sdf.parse(fechaCadena));
             em.persist(pedidoCabecera);
+            log.info("STORING CABECERA");
 
             //JsonObject cabecera = requestObject.getJsonObject("detalle")
-            JsonArray detallesJson = requestObject.getJsonArray("detalles");
+            JsonArray detallesJson = requestObject.getJsonArray("lstDetailBill");
             for (int i = 0; i< detallesJson.size(); i++){
                 JsonObject detalle  =detallesJson.getJsonObject(i);
                 PedidoDetalle pedidoDetalle = new PedidoDetalle();
                 pedidoDetalle.setFecha(new Date());
                 pedidoDetalle.setUnidades(detalle.getJsonNumber("unidades").bigDecimalValue());
                 pedidoDetalle.setDescripcion(detalle.getString("descripcion"));
-                pedidoDetalle.setVunitario(detalle.getJsonNumber("vunitario").bigDecimalValue());
+                pedidoDetalle.setVunitario(detalle.getJsonNumber("valorUnitario").bigDecimalValue());
                 pedidoDetalle.setTotal(detalle.getJsonNumber("total").bigDecimalValue());
                 em.persist(pedidoDetalle);
             }
