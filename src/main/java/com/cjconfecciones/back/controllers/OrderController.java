@@ -28,8 +28,33 @@ public class OrderController {
 
     @PersistenceUnit(name = "unitPersistence")
     private EntityManagerFactory emf;
-
     Logger log = Logger.getLogger(OrderController.class.getName());
+
+    public JsonObject searchClient(JsonObject requestObject){
+        JsonObjectBuilder response = null;
+        try{
+            log.info("Init search client");
+            EntityManager em = emf.createEntityManager();
+            String id = requestObject.getString("identificacion");
+            Persona persona = em.find(Persona.class,id);
+            if (persona !=null){
+                response = Json.createObjectBuilder()
+                .add("identificacion",persona.getCedula())
+                .add("nombres",persona.getNombre())
+                .add("direccion", persona.getDireccion())
+                .add("telefono",persona.getTelefono());
+            }else{
+                log.info("CLIENT NOT FOUND");
+                response = Json.createObjectBuilder().add("error","1");
+            }
+        }catch (Exception e){
+            log.log(Level.SEVERE, "ERROR TO SEARCH CLIENT ",e);
+            response = Json.createObjectBuilder().add("error","1");
+        }
+        return  response.build();
+    }
+
+
     public JsonObject newOrder(JsonObject requestObject){
         JsonObjectBuilder response = null;
         Persona persona = new Persona();
@@ -39,13 +64,7 @@ public class OrderController {
             log.info("INIT METHOD NEW ORDER");
             log.info("STORING PERSON");
             t.begin();
-            /*
-            persona.setCedula(requestObject.getJsonObject("persona").getString("cedula"));
-            persona.setNombre(requestObject.getJsonObject("persona").getString("nombre"));
-            persona.setApellido(requestObject.getJsonObject("persona").getString("apellido"));
-            persona.setTelefono(requestObject.getJsonObject("persona").getString("telefono"));
-            persona.setDireccion(requestObject.getJsonObject("persona").getString("direccion"));
-            */
+
             persona.setCedula(requestObject.getString("identificacion"));
             persona.setNombre(requestObject.getString("nombres"));
             persona.setTelefono(requestObject.getString("telefono"));

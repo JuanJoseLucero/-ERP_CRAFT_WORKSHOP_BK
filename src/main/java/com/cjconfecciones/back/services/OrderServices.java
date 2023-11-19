@@ -22,4 +22,12 @@ public class OrderServices {
     public JsonObject newOrder (JsonObject jsonObject){
         return orderController.newOrder(jsonObject);
     }
+
+    @POST
+    @Path("/searchClient")
+    @Produces("application/json")
+    @Consumes("application/json")
+    public JsonObject searchClient (JsonObject jsonObject){
+        return orderController.searchClient(jsonObject);
+    }
 }
