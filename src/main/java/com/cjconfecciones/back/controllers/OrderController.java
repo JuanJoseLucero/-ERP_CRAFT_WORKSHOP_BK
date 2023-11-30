@@ -65,11 +65,14 @@ public class OrderController {
             log.info("STORING PERSON");
             t.begin();
 
-            persona.setCedula(requestObject.getString("identificacion"));
-            persona.setNombre(requestObject.getString("nombres"));
-            persona.setTelefono(requestObject.getString("telefono"));
-            persona.setDireccion(requestObject.getString("direccion"));
-            em.persist(persona);
+            Persona personaSearch = em.find(Persona.class,requestObject.getString("identificacion"));
+            if (personaSearch ==null){
+                persona.setCedula(requestObject.getString("identificacion"));
+                persona.setNombre(requestObject.getString("nombres"));
+                persona.setTelefono(requestObject.getString("telefono"));
+                persona.setDireccion(requestObject.getString("direccion"));
+                em.persist(persona);
+            }
 
             Cliente cliente = new Cliente();
             cliente.setIdpersona(persona.getCedula());
@@ -98,6 +101,7 @@ public class OrderController {
                 pedidoDetalle.setDescripcion(detalle.getString("descripcion"));
                 pedidoDetalle.setVunitario(detalle.getJsonNumber("valorUnitario").bigDecimalValue());
                 pedidoDetalle.setTotal(detalle.getJsonNumber("total").bigDecimalValue());
+                pedidoDetalle.setCcabecera(pedidoCabecera.getId());
                 em.persist(pedidoDetalle);
             }
             t.commit();
