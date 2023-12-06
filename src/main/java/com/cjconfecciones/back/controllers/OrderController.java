@@ -11,14 +11,12 @@ import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.EntityTransaction;
-import jakarta.persistence.PersistenceUnit;
+import jakarta.persistence.*;
 
 import javax.swing.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -75,9 +73,20 @@ public class OrderController {
             }
 
             Cliente cliente = new Cliente();
-            cliente.setIdpersona(persona.getCedula());
-            em.persist(cliente);
-            log.info("STORING CLIENTE");
+            String queryClient = "select id, idpersona  from tcliente where idpersona = :idParamtero ";
+            Query query = em.createNativeQuery(queryClient);
+            query.setParameter("idParamtero",requestObject.getString("identificacion"));
+            List<Object[]> lst = query.getResultList();
+            if(lst.isEmpty()){
+                log.info("EMPTY LIST");
+                cliente.setIdpersona(persona.getCedula());
+                em.persist(cliente);
+                log.info("STORING CLIENTE");
+            }else{
+                Object[] celdas = lst.get(0);
+                cliente.setId(Integer.parseInt(String.valueOf(celdas[0])));
+                cliente.setIdpersona(String.valueOf(celdas[1]));
+            }
 
             PedidoCabecera pedidoCabecera = new PedidoCabecera();
             pedidoCabecera.setCcliente(cliente.getId());
