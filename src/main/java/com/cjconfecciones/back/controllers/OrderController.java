@@ -7,13 +7,11 @@ import com.cjconfecciones.back.entities.Persona;
 import com.cjconfecciones.back.util.EnumCJ;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Named;
-import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
+import jakarta.json.*;
 import jakarta.persistence.*;
 
 import javax.swing.*;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -27,6 +25,44 @@ public class OrderController {
     @PersistenceUnit(name = "unitPersistence")
     private EntityManagerFactory emf;
     Logger log = Logger.getLogger(OrderController.class.getName());
+
+    public JsonObject getOrders(){
+        JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
+        try{
+            EntityManager entityManager = emf.createEntityManager();
+            String sqlQuery = "select c.id , c.fecha as fechaEntrega, c.total, tp.nombre, tp.direccion, tp.telefono , STRING_AGG(d.descripcion ,', ') " +
+                    "from cjconfecciones.tpedidocabecera as c, " +
+                    "  cjconfecciones.tpedidodetalle as d, " +
+                    "  cjconfecciones.tcliente as cli, " +
+                    "  cjconfecciones.tpersona as tp " +
+                    "where  c.id = d.ccabecera " +
+                    "and  c.ccliente = cli.id " +
+                    "and  cli.idpersona = tp.cedula " +
+                    "group by c.id , c.fecha, c.total, tp.nombre, tp.direccion,tp.telefono ";
+
+            Query query = entityManager.createNativeQuery(sqlQuery);
+            List<Object[]> resultados = query.getResultList();
+            JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
+            jsonBuilder.add("error", 0);
+            for (Object[] resultado : resultados){
+                JsonObjectBuilder obj = Json.createObjectBuilder();
+                obj.add("id", Integer.parseInt(String.valueOf(resultado[0])));
+                obj.add("fechaEntrega", String.valueOf(resultado[1]));
+                obj.add("total", new BigDecimal(String.valueOf(resultado[2])));
+                obj.add("nombre", String.valueOf(resultado[3]));
+                obj.add("direccion", String.valueOf(resultado[4]));
+                obj.add("telefono", String.valueOf(resultado[5]));
+                obj.add("detalle", String.valueOf(resultado[6]));
+                arrayBuilder.add(obj);
+            }
+            jsonBuilder.add("pedidos", arrayBuilder);
+            entityManager.close();
+        }catch (Exception e){
+            log.log(Level.SEVERE, "ERROR TO GET ORDERS ",e);
+            jsonBuilder.add("error","1");
+        }
+        return jsonBuilder.build();
+    }
 
     public JsonObject searchClient(JsonObject requestObject){
         JsonObjectBuilder response = null;
