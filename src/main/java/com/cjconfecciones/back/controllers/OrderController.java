@@ -26,6 +26,34 @@ public class OrderController {
     private EntityManagerFactory emf;
     Logger log = Logger.getLogger(OrderController.class.getName());
 
+    public JsonObject getOrderById(JsonObject requestObject){
+        JsonObjectBuilder jsonObjectBuilder = Json.createObjectBuilder();
+        try{
+            Integer id = requestObject.getInt("orderId");
+            EntityManager em = emf.createEntityManager();
+            PedidoCabecera pedidoCabecera = em.find(PedidoCabecera.class,id);
+            String sqlDetailOrder = "select d.id , d.unidades , d.descripcion , d.vunitario , d.total , d.fecha from cjconfecciones.tpedidodetalle as d where d.ccabecera  = :ccabecera";
+            Query query = em.createNativeQuery(sqlDetailOrder);
+            query.setParameter("ccabecera",id);
+            List<Object[]> resultados = query.getResultList();
+            JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
+            for(Object[] object : resultados){
+                JsonObjectBuilder obj = Json.createObjectBuilder();
+                obj.add("id", Integer.parseInt(String.valueOf(object[0])));
+                obj.add("unidades", Integer.parseInt(String.valueOf(object[1])));
+                obj.add("descripcion", String.valueOf(object[2]));
+                obj.add("valorUnitario", new BigDecimal(String.valueOf(object[3])));
+                obj.add("total",  new BigDecimal(String.valueOf(object[4])));
+                obj.add("fecha", String.valueOf(object[4]));
+                arrayBuilder.add(obj);
+            }
+            jsonObjectBuilder.add("pedidos", arrayBuilder);
+        }catch (Exception e){
+            log.log(Level.SEVERE, "ERROR WHEN GETORDERBYID ",e);
+        }
+        return jsonObjectBuilder.build();
+    }
+
     public JsonObject getOrders(){
         JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
         try{

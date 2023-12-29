@@ -13,6 +13,14 @@ public class OrderServices {
     @Inject
     private OrderController orderController;
 
+
+    @POST
+    @Path("/getOrderById")
+    @Produces("application/json")
+    @Consumes("application/json")
+    public JsonObject getOrderById(JsonObject jsonObject){
+        return orderController.getOrderById(jsonObject);
+    }
     @POST
     @Path("/getOrders")
     @Produces("application/json")
