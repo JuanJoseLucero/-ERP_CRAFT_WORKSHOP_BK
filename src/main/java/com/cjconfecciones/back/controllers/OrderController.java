@@ -5,12 +5,16 @@ import com.cjconfecciones.back.entities.PedidoCabecera;
 import com.cjconfecciones.back.entities.PedidoDetalle;
 import com.cjconfecciones.back.entities.Persona;
 import com.cjconfecciones.back.util.EnumCJ;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParser;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Named;
 import jakarta.json.*;
 import jakarta.persistence.*;
 
 import javax.swing.*;
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -29,9 +33,32 @@ public class OrderController {
     public JsonObject getOrderById(JsonObject requestObject){
         JsonObjectBuilder jsonObjectBuilder = Json.createObjectBuilder();
         try{
-            Integer id = requestObject.getInt("orderId");
+            String auxId = requestObject.getString("pedidoId");
+            Integer id = Integer.parseInt(auxId);
             EntityManager em = emf.createEntityManager();
+
+            /** Get order 4 id***/
             PedidoCabecera pedidoCabecera = em.find(PedidoCabecera.class,id);
+            //Gson gson = new Gson();
+            Gson gson = new GsonBuilder().setDateFormat("dd/MM/yyyy").create();
+            String json = gson.toJson(pedidoCabecera);
+            JsonReader reader = Json.createReader(new StringReader(json));
+            jsonObjectBuilder = Json.createObjectBuilder(reader.readObject());
+
+            /** Get person **/
+            Cliente cliente = em.find(Cliente.class,pedidoCabecera.getCcliente());
+            log.info("CLIENT FIND BY ID ".concat(cliente.getIdpersona()));
+
+            Persona person = em.find(Persona.class,cliente.getIdpersona());
+            log.info("PERSON FIND BY NAME ".concat( person.getNombre()));
+
+            jsonObjectBuilder.add("nombres" , person.getNombre());
+            jsonObjectBuilder.add("identificacion" , person.getCedula());
+            jsonObjectBuilder.add("direccion" , person.getDireccion());
+            jsonObjectBuilder.add("telefono" , person.getTelefono());
+
+
+            /**Get detail orders **/
             String sqlDetailOrder = "select d.id , d.unidades , d.descripcion , d.vunitario , d.total , d.fecha from cjconfecciones.tpedidodetalle as d where d.ccabecera  = :ccabecera";
             Query query = em.createNativeQuery(sqlDetailOrder);
             query.setParameter("ccabecera",id);
@@ -44,10 +71,10 @@ public class OrderController {
                 obj.add("descripcion", String.valueOf(object[2]));
                 obj.add("valorUnitario", new BigDecimal(String.valueOf(object[3])));
                 obj.add("total",  new BigDecimal(String.valueOf(object[4])));
-                obj.add("fecha", String.valueOf(object[4]));
+                obj.add("fecha", String.valueOf(object[5]));
                 arrayBuilder.add(obj);
             }
-            jsonObjectBuilder.add("pedidos", arrayBuilder);
+            jsonObjectBuilder.add("lstDetailBill", arrayBuilder);
         }catch (Exception e){
             log.log(Level.SEVERE, "ERROR WHEN GETORDERBYID ",e);
         }
