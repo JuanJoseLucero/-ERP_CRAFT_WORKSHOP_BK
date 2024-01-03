@@ -52,6 +52,7 @@ public class OrderController {
             Persona person = em.find(Persona.class,cliente.getIdpersona());
             log.info("PERSON FIND BY NAME ".concat( person.getNombre()));
 
+            jsonObjectBuilder.add("pedidoId" , id);
             jsonObjectBuilder.add("nombres" , person.getNombre());
             jsonObjectBuilder.add("identificacion" , person.getCedula());
             jsonObjectBuilder.add("direccion" , person.getDireccion());
@@ -59,7 +60,7 @@ public class OrderController {
 
 
             /**Get detail orders **/
-            String sqlDetailOrder = "select d.id , d.unidades , d.descripcion , d.vunitario , d.total , d.fecha from cjconfecciones.tpedidodetalle as d where d.ccabecera  = :ccabecera";
+            String sqlDetailOrder = "select d.id , d.unidades , d.descripcion , d.vunitario , d.total , d.fecha, d.valorunitariofinal, d.puntadas   from cjconfecciones.tpedidodetalle as d where d.ccabecera  = :ccabecera";
             Query query = em.createNativeQuery(sqlDetailOrder);
             query.setParameter("ccabecera",id);
             List<Object[]> resultados = query.getResultList();
@@ -72,6 +73,8 @@ public class OrderController {
                 obj.add("valorUnitario", new BigDecimal(String.valueOf(object[3])));
                 obj.add("total",  new BigDecimal(String.valueOf(object[4])));
                 obj.add("fecha", String.valueOf(object[5]));
+                obj.add("valorFinal", String.valueOf(object[6]));
+                obj.add("puntadas", String.valueOf(object[7]));
                 arrayBuilder.add(obj);
             }
             jsonObjectBuilder.add("lstDetailBill", arrayBuilder);
@@ -179,30 +182,63 @@ public class OrderController {
                 cliente.setIdpersona(String.valueOf(celdas[1]));
             }
 
-            PedidoCabecera pedidoCabecera = new PedidoCabecera();
-            pedidoCabecera.setCcliente(cliente.getId());
-            pedidoCabecera.setEstado(EnumCJ.ESTADO_ABIERTO.getEstado());
-            //pedidoCabecera.setTotal(requestObject.getJsonObject("cabecera").getJsonNumber("total").bigDecimalValue());
-            pedidoCabecera.setTotal(requestObject.getJsonNumber("total").bigDecimalValue());
-            //String fechaCadena = requestObject.getJsonObject("cabecera").getString("fecha");
-            String fechaCadena = requestObject.getString("fecha");
-            SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
-            pedidoCabecera.setFecha(sdf.parse(fechaCadena));
-            em.persist(pedidoCabecera);
-            log.info("STORING CABECERA");
+            PedidoCabecera pedidoCabecera = em.find(PedidoCabecera.class, Integer.parseInt(requestObject.containsKey("pedidoId")? requestObject.getString("pedidoId"):"0"));
+            if(pedidoCabecera == null){
+                pedidoCabecera = new PedidoCabecera();
+                pedidoCabecera.setCcliente(cliente.getId());
+                pedidoCabecera.setEstado(EnumCJ.ESTADO_ABIERTO.getEstado());
+                //pedidoCabecera.setTotal(requestObject.getJsonObject("cabecera").getJsonNumber("total").bigDecimalValue());
+                pedidoCabecera.setTotal(requestObject.getJsonNumber("total").bigDecimalValue());
+                //String fechaCadena = requestObject.getJsonObject("cabecera").getString("fecha");
+                String fechaCadena = requestObject.getString("fecha");
+                SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+                pedidoCabecera.setFecha(sdf.parse(fechaCadena));
+                em.persist(pedidoCabecera);
+                log.info("STORING CABECERA");
+            }else{
+                log.info("pedidoCabecera found");
+                pedidoCabecera.setTotal(requestObject.getJsonNumber("total").bigDecimalValue());
+                pedidoCabecera.setCcliente(cliente.getId());
+                String fechaCadena = requestObject.getString("fecha");
+                SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+                pedidoCabecera.setFecha(sdf.parse(fechaCadena));
+                em.merge(pedidoCabecera);
+            }
 
             //JsonObject cabecera = requestObject.getJsonObject("detalle")
             JsonArray detallesJson = requestObject.getJsonArray("lstDetailBill");
             for (int i = 0; i< detallesJson.size(); i++){
                 JsonObject detalle  =detallesJson.getJsonObject(i);
                 PedidoDetalle pedidoDetalle = new PedidoDetalle();
-                pedidoDetalle.setFecha(new Date());
-                pedidoDetalle.setUnidades(detalle.getJsonNumber("unidades").bigDecimalValue());
-                pedidoDetalle.setDescripcion(detalle.getString("descripcion"));
-                pedidoDetalle.setVunitario(detalle.getJsonNumber("valorUnitario").bigDecimalValue());
-                pedidoDetalle.setTotal(detalle.getJsonNumber("total").bigDecimalValue());
-                pedidoDetalle.setCcabecera(pedidoCabecera.getId());
-                em.persist(pedidoDetalle);
+                if (detalle.containsKey("id")){
+                    log.info("ID FOUND");
+                    pedidoDetalle = em.find(PedidoDetalle.class, detalle.getInt("id"));
+                    if(pedidoDetalle != null) {
+                        log.info("Modify Detail");
+                        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+                        pedidoDetalle.setFecha(sdf.parse(detalle.getString("fechaCadena")));
+                        pedidoDetalle.setUnidades(detalle.getJsonNumber("unidades").bigDecimalValue());
+                        pedidoDetalle.setDescripcion(detalle.getString("descripcion"));
+                        pedidoDetalle.setVunitario(detalle.getJsonNumber("valorUnitario").bigDecimalValue());
+                        pedidoDetalle.setValorunitariofinal(detalle.getJsonNumber("valorFinal").bigDecimalValue());
+                        pedidoDetalle.setTotal(detalle.getJsonNumber("total").bigDecimalValue());
+                        pedidoDetalle.setPuntadas(detalle.getJsonNumber("puntadas").bigDecimalValue());
+                        pedidoDetalle.setCcabecera(pedidoCabecera.getId());
+                        em.merge(pedidoDetalle);
+                    }
+                }else{
+                    log.info("PEDIDO DETALLE FOUND");
+                    pedidoDetalle = new PedidoDetalle();
+                    pedidoDetalle.setFecha(new Date());
+                    pedidoDetalle.setUnidades(detalle.getJsonNumber("unidades").bigDecimalValue());
+                    pedidoDetalle.setDescripcion(detalle.getString("descripcion"));
+                    pedidoDetalle.setVunitario(detalle.getJsonNumber("valorUnitario").bigDecimalValue());
+                    pedidoDetalle.setValorunitariofinal(detalle.getJsonNumber("valorFinal").bigDecimalValue());
+                    pedidoDetalle.setTotal(detalle.getJsonNumber("total").bigDecimalValue());
+                    pedidoDetalle.setPuntadas(detalle.getJsonNumber("puntadas").bigDecimalValue());
+                    pedidoDetalle.setCcabecera(pedidoCabecera.getId());
+                    em.persist(pedidoDetalle);
+                }
             }
             t.commit();
             response = Json.createObjectBuilder().add("error","0");

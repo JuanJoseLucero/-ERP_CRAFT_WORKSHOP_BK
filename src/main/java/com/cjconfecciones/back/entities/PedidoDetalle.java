@@ -26,5 +26,7 @@ public class PedidoDetalle {
     private BigDecimal vunitario;
     private BigDecimal total;
     private Integer ccabecera;
+    private BigDecimal puntadas;
+    private BigDecimal valorunitariofinal;
 
 }
