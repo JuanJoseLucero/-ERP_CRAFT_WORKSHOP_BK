@@ -88,7 +88,7 @@ public class OrderController {
         JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
         try{
             EntityManager entityManager = emf.createEntityManager();
-            String sqlQuery = "select c.id , c.fecha as fechaEntrega, c.total, tp.nombre, tp.direccion, tp.telefono , STRING_AGG(d.descripcion ,', ') " +
+            String sqlQuery = "select c.id , c.fecha as fechaEntrega, c.total, tp.nombre, tp.direccion, tp.telefono , STRING_AGG(d.descripcion ,', ') , c.freal " +
                     "from cjconfecciones.tpedidocabecera as c, " +
                     "  cjconfecciones.tpedidodetalle as d, " +
                     "  cjconfecciones.tcliente as cli, " +
@@ -96,7 +96,8 @@ public class OrderController {
                     "where  c.id = d.ccabecera " +
                     "and  c.ccliente = cli.id " +
                     "and  cli.idpersona = tp.cedula " +
-                    "group by c.id , c.fecha, c.total, tp.nombre, tp.direccion,tp.telefono ";
+                    "group by c.id , c.fecha, c.total, tp.nombre, tp.direccion,tp.telefono " +
+                    " order by c.id desc ";
 
             Query query = entityManager.createNativeQuery(sqlQuery);
             List<Object[]> resultados = query.getResultList();
@@ -111,6 +112,7 @@ public class OrderController {
                 obj.add("direccion", String.valueOf(resultado[4]));
                 obj.add("telefono", String.valueOf(resultado[5]));
                 obj.add("detalle", String.valueOf(resultado[6]));
+                obj.add("freal", String.valueOf(resultado[7]));
                 arrayBuilder.add(obj);
             }
             jsonBuilder.add("pedidos", arrayBuilder);
@@ -193,6 +195,7 @@ public class OrderController {
                 String fechaCadena = requestObject.getString("fecha");
                 SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
                 pedidoCabecera.setFecha(sdf.parse(fechaCadena));
+                pedidoCabecera.setFreal(new Date());
                 em.persist(pedidoCabecera);
                 log.info("STORING CABECERA");
             }else{
@@ -240,6 +243,7 @@ public class OrderController {
                     em.persist(pedidoDetalle);
                 }
             }
+            log.info("REGISTRO GUARDADO CORRECTAMENTE");
             t.commit();
             response = Json.createObjectBuilder().add("error","0");
         }catch (Exception e){

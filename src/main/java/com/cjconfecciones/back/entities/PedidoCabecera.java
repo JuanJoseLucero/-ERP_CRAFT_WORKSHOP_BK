@@ -24,6 +24,7 @@ public class PedidoCabecera {
     private BigDecimal total;
     private String estado;
     private Integer ccliente;
+    private Date freal;
 
 
 
