@@ -28,5 +28,6 @@ public class PedidoDetalle {
     private Integer ccabecera;
     private BigDecimal puntadas;
     private BigDecimal valorunitariofinal;
+    private BigDecimal subvalorfactura;
 
 }

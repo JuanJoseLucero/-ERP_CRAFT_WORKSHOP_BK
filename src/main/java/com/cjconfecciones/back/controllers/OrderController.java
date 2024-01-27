@@ -60,7 +60,7 @@ public class OrderController {
 
 
             /**Get detail orders **/
-            String sqlDetailOrder = "select d.id , d.unidades , d.descripcion , d.vunitario , d.total , d.fecha, d.valorunitariofinal, d.puntadas   from cjconfecciones.tpedidodetalle as d where d.ccabecera  = :ccabecera";
+            String sqlDetailOrder = "select d.id , d.unidades , d.descripcion , d.vunitario , d.total , d.fecha, d.valorunitariofinal, d.puntadas, d.subvalorfactura    from cjconfecciones.tpedidodetalle as d where d.ccabecera  = :ccabecera";
             Query query = em.createNativeQuery(sqlDetailOrder);
             query.setParameter("ccabecera",id);
             List<Object[]> resultados = query.getResultList();
@@ -75,6 +75,7 @@ public class OrderController {
                 obj.add("fecha", String.valueOf(object[5]));
                 obj.add("valorFinal", String.valueOf(object[6]));
                 obj.add("puntadas", String.valueOf(object[7]));
+                obj.add("subValorFactura", String.valueOf(object[8]));
                 arrayBuilder.add(obj);
             }
             jsonObjectBuilder.add("lstDetailBill", arrayBuilder);
@@ -227,6 +228,7 @@ public class OrderController {
                         pedidoDetalle.setTotal(detalle.getJsonNumber("total").bigDecimalValue());
                         pedidoDetalle.setPuntadas(detalle.getJsonNumber("puntadas").bigDecimalValue());
                         pedidoDetalle.setCcabecera(pedidoCabecera.getId());
+                        pedidoDetalle.setSubvalorfactura(detalle.getJsonNumber("subValorFactura").bigDecimalValue());
                         em.merge(pedidoDetalle);
                     }
                 }else{
@@ -240,6 +242,7 @@ public class OrderController {
                     pedidoDetalle.setTotal(detalle.getJsonNumber("total").bigDecimalValue());
                     pedidoDetalle.setPuntadas(detalle.getJsonNumber("puntadas").bigDecimalValue());
                     pedidoDetalle.setCcabecera(pedidoCabecera.getId());
+                    pedidoDetalle.setSubvalorfactura(detalle.getJsonNumber("subValorFactura").bigDecimalValue());
                     em.persist(pedidoDetalle);
                 }
             }
