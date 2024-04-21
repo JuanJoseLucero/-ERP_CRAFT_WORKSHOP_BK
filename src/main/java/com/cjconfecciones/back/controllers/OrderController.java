@@ -60,7 +60,7 @@ public class OrderController {
 
 
             /**Get detail orders **/
-            String sqlDetailOrder = "select d.id , d.unidades , d.descripcion , d.vunitario , d.total , d.fecha, d.valorunitariofinal, d.puntadas, d.subvalorfactura    from cjconfecciones.tpedidodetalle as d where d.ccabecera  = :ccabecera";
+            String sqlDetailOrder = "select d.id , d.unidades , d.descripcion , d.vunitario , d.total , d.fecha, d.valorunitariofinal, d.puntadas, d.subvalorfactura ,d.tipo from cjconfecciones.tpedidodetalle as d where d.ccabecera  = :ccabecera";
             Query query = em.createNativeQuery(sqlDetailOrder);
             query.setParameter("ccabecera",id);
             List<Object[]> resultados = query.getResultList();
@@ -76,6 +76,7 @@ public class OrderController {
                 obj.add("valorFinal", String.valueOf(object[6]));
                 obj.add("puntadas", String.valueOf(object[7]));
                 obj.add("subValorFactura", String.valueOf(object[8]));
+                obj.add("tipo", String.valueOf(object[9]));
                 arrayBuilder.add(obj);
             }
             jsonObjectBuilder.add("lstDetailBill", arrayBuilder);
@@ -229,7 +230,9 @@ public class OrderController {
                         pedidoDetalle.setPuntadas(detalle.getJsonNumber("puntadas").bigDecimalValue());
                         pedidoDetalle.setCcabecera(pedidoCabecera.getId());
                         pedidoDetalle.setSubvalorfactura(detalle.getJsonNumber("subValorFactura").bigDecimalValue());
+                        pedidoDetalle.setTipo(detalle.getString("tipo"));
                         em.merge(pedidoDetalle);
+
                     }
                 }else{
                     log.info("PEDIDO DETALLE FOUND");
@@ -237,12 +240,13 @@ public class OrderController {
                     pedidoDetalle.setFecha(new Date());
                     pedidoDetalle.setUnidades(detalle.getJsonNumber("unidades").bigDecimalValue());
                     pedidoDetalle.setDescripcion(detalle.getString("descripcion"));
-                    pedidoDetalle.setVunitario(detalle.getJsonNumber("valorUnitario").bigDecimalValue());
+                    pedidoDetalle.setVunitario(detalle.getJsonNumber("valorUnitario") !=null ?detalle.getJsonNumber("valorUnitario").bigDecimalValue():BigDecimal.ZERO);
                     pedidoDetalle.setValorunitariofinal(detalle.getJsonNumber("valorFinal").bigDecimalValue());
-                    pedidoDetalle.setTotal(detalle.getJsonNumber("total").bigDecimalValue());
-                    pedidoDetalle.setPuntadas(detalle.getJsonNumber("puntadas").bigDecimalValue());
+                    pedidoDetalle.setTotal(detalle.getJsonNumber("total")!=null?detalle.getJsonNumber("total").bigDecimalValue():BigDecimal.ZERO);
+                    pedidoDetalle.setPuntadas(detalle.getJsonNumber("puntadas")!=null?detalle.getJsonNumber("puntadas").bigDecimalValue():BigDecimal.ZERO);
                     pedidoDetalle.setCcabecera(pedidoCabecera.getId());
                     pedidoDetalle.setSubvalorfactura(detalle.getJsonNumber("subValorFactura").bigDecimalValue());
+                    pedidoDetalle.setTipo(detalle.getString("tipo"));
                     em.persist(pedidoDetalle);
                 }
             }
