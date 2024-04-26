@@ -10,6 +10,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.persistence.*;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.logging.Level;
@@ -37,10 +38,14 @@ public class AbonoController {
             for(Object[] object : resultados){
                 JsonObjectBuilder obj = Json.createObjectBuilder();
                 obj.add("id", Integer.parseInt(String.valueOf(object[0])));
+                obj.add("fecha", String.valueOf(object[1]));
+                obj.add("valor",new BigDecimal(String.valueOf(object[2])));
                 arrayBuilder.add(obj);
             }
-            jsonObjectBuilder.add("lstAbonos", arrayBuilder);
+            jsonObjectBuilder.add("error", 0);
+            jsonObjectBuilder.add("abonos", arrayBuilder);
         }catch (Exception e){
+            jsonObjectBuilder.add("error", 1);
             log.log(Level.SEVERE, "ERROR WHEN getLstAbonos ",e);
         }
         return jsonObjectBuilder.build();
