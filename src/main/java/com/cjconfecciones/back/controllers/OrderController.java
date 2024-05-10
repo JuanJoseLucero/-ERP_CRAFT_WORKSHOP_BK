@@ -80,10 +80,33 @@ public class OrderController {
                 arrayBuilder.add(obj);
             }
             jsonObjectBuilder.add("lstDetailBill", arrayBuilder);
+            jsonObjectBuilder.add("lstAbonos",this.getListAbono(id));
         }catch (Exception e){
             log.log(Level.SEVERE, "ERROR WHEN GETORDERBYID ",e);
         }
         return jsonObjectBuilder.build();
+    }
+
+    public JsonArrayBuilder getListAbono(Integer orderId){
+        JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
+        try{
+            EntityManager em = emf.createEntityManager();
+            String sqlQuery = "select id,fecha ,valor ,ccabecera  from cjconfecciones.tabono t where ccabecera = :ccabecera";
+            Query query = em.createNativeQuery(sqlQuery);
+            query.setParameter("ccabecera",orderId);
+            List<Object[]> resultados = query.getResultList();
+            for(Object[] object : resultados){
+                JsonObjectBuilder obj = Json.createObjectBuilder();
+                obj.add("id", Integer.parseInt(String.valueOf(object[0])));
+                obj.add("fecha", String.valueOf(object[1]));
+                obj.add("valor",new BigDecimal(String.valueOf(object[2])));
+                arrayBuilder.add(obj);
+            }
+
+        }catch (Exception e){
+            log.log(Level.SEVERE, "error when get List abono ",e);
+        }
+        return arrayBuilder;
     }
 
     public JsonObject getOrders(){
