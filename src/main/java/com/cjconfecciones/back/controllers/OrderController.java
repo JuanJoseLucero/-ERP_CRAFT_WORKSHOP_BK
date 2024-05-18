@@ -175,6 +175,8 @@ public class OrderController {
 
 
     public JsonObject newOrder(JsonObject requestObject){
+        Gson gson = new Gson();
+        log.info("ENTRADA ".concat(gson.toJson(requestObject)));
         JsonObjectBuilder response = null;
         Persona persona = new Persona();
         EntityManager em = emf.createEntityManager();

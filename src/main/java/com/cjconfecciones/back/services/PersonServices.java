@@ -3,13 +3,12 @@ package com.cjconfecciones.back.services;
 import com.cjconfecciones.back.controllers.ClienteController;
 import jakarta.annotation.Generated;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.QueryParam;
+import jakarta.json.JsonObject;
+import jakarta.ws.rs.*;
 
 import java.util.logging.Logger;
 
-@Path("teset")
+@Path("test")
 public class PersonServices {
 
     @Inject
@@ -22,5 +21,13 @@ public class PersonServices {
     public void persistPersonServices(){
         log.info("WEB SERVICES STARTED");
         clienteController.newClient();
+    }
+
+    @POST
+    @Path("/search")
+    @Produces("application/json")
+    @Consumes("application/json")
+    public JsonObject search(JsonObject jsonObject){
+        return clienteController.searchClient4Name(jsonObject);
     }
 }

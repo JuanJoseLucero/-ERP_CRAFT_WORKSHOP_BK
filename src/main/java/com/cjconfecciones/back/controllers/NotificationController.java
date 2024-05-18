@@ -64,7 +64,12 @@ public class NotificationController implements Serializable {
             }
             jsonObjectBuilder.add("error", 0);
             jsonObjectBuilder.add("peticiones", arrayBuilder);
-
+            this.enviarMensajeNotificacion("dLZYNAuyS9qZlYiP8cDl2N:APA91bHTm3fswXMo8GC3HIXX4eABgCky1h1TtA2COtKyWXpzMOmHriY7HtzvZRXT8Rz8P-e9kbgVeiW00LVjlValcRsyVWZ0YbLZ2nD_PoSxeMgcYXkWu8KRvSiKAFFcadWg77d4GiZp",
+                    "PEDIDOS PENDIENTES","Tienes pedidos pendientes","L","TRABAJOS PENDIENTES",mensaje);
+            this.enviarMensajeNotificacion("fHpkpoIpQrGDKuQJxiR65F:APA91bH7SBrB-kZZTQ8TixRt5Uj0Wvb2aXqAiCvSkufmCmG5j4UzPy3NmR0TpbyeCx1wBDYKQ1ROxCZovYQWpycWQBpxGkViCTwG87zRw-7aL9uLUpmSl8lV5V3iIBd3j5td2Eri1Vxd",
+                    "PEDIDOS PENDIENTES","Tienes pedidos pendientes","L","TRABAJOS PENDIENTES",mensaje);
+            this.enviarMensajeNotificacion("eGzAZtxfR5qk60gPRwyYAM:APA91bFAsHtm7rzWxsZ664iH8XjmRojX2x7Q_j4H1BJlPb7g75GHOlkFPixlyiwcLSmzKgwXrIT-UPXQGQFI9UgPyCylvqeeX92KLyACUERBs4YHOYqJb4tFZzaRcB3QK60Rflqqwnoh",
+                    "PEDIDOS PENDIENTES","Tienes pedidos pendientes","L","TRABAJOS PENDIENTES",mensaje);
         }catch (Exception e){
             jsonObjectBuilder.add("error", 1);
             log.log(Level.SEVERE, "ERROR WHEN getLstAbonos ",e);
