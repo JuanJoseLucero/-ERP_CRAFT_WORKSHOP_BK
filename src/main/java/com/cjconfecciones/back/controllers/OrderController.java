@@ -113,7 +113,7 @@ public class OrderController {
         JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
         try{
             EntityManager entityManager = emf.createEntityManager();
-            String sqlQuery = "select c.id , c.fecha as fechaEntrega, c.total, tp.nombre, tp.direccion, tp.telefono , STRING_AGG(d.descripcion ,', ') , c.freal " +
+            String sqlQuery = "select c.id , c.fecha as fechaEntrega, c.total, tp.nombre, tp.direccion, tp.telefono , STRING_AGG(d.descripcion ,', ') , c.freal, c.estado  " +
                     "from cjconfecciones.tpedidocabecera as c, " +
                     "  cjconfecciones.tpedidodetalle as d, " +
                     "  cjconfecciones.tcliente as cli, " +
@@ -138,6 +138,7 @@ public class OrderController {
                 obj.add("telefono", String.valueOf(resultado[5]));
                 obj.add("detalle", String.valueOf(resultado[6]));
                 obj.add("freal", String.valueOf(resultado[7]));
+                obj.add("estado", String.valueOf(resultado[8]));
                 arrayBuilder.add(obj);
             }
             jsonBuilder.add("pedidos", arrayBuilder);

@@ -1,6 +1,8 @@
 package com.cjconfecciones.back.controllers;
 
 import com.cjconfecciones.back.entities.Abono;
+import com.cjconfecciones.back.entities.PedidoCabecera;
+import com.cjconfecciones.back.util.EnumCJ;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Named;
 import jakarta.json.Json;
@@ -64,6 +66,28 @@ public class AbonoController {
             abono.setValor(requestObject.getJsonNumber("valor").bigDecimalValue());
             abono.setCcabecera(requestObject.getInt("ccabecera"));
             em.persist(abono);
+
+            /**
+             * UPDATE ORDER
+             */
+
+            BigDecimal acumulado= BigDecimal.ZERO;
+            String sqlQuery = "select id,fecha ,valor ,ccabecera  from cjconfecciones.tabono t where ccabecera = :ccabecera";
+            Query query = em.createNativeQuery(sqlQuery);
+            query.setParameter("ccabecera",abono.getCcabecera());
+            List<Object[]> resultados = query.getResultList();
+            for(Object[] object : resultados){
+                JsonObjectBuilder obj = Json.createObjectBuilder();
+                acumulado = acumulado.add(new BigDecimal(String.valueOf(object[2])));
+            }
+            PedidoCabecera pedidoCabecera = em.find(PedidoCabecera.class,abono.getCcabecera());
+            if(acumulado.compareTo(pedidoCabecera.getTotal())==0){
+                pedidoCabecera.setEstado(EnumCJ.ESTADO_PAGADO.getEstado());
+                em.persist(pedidoCabecera);
+            }else{
+                pedidoCabecera.setEstado(EnumCJ.ESTADO_ABONADO.getEstado());
+                em.persist(pedidoCabecera);
+            }
             transaction.commit();
             response = Json.createObjectBuilder().add("error","0");
             return  response.build();

@@ -3,7 +3,10 @@ package com.cjconfecciones.back.util;
 
 public enum EnumCJ {
 
+    ESTADO_PAGADO ("P","ORDEN DE TRABAJO PAGADO"),
+    ESTADO_ABONADO ("AB","ORDEN DE TRABAJO ABONADO"),
     ESTADO_ABIERTO ("A","ORDEN DE TRABAJO ABIERTA");
+
 
     private String estado;
     private String descripcion;
