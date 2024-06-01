@@ -44,4 +44,12 @@ public class OrderServices {
     public JsonObject searchClient (JsonObject jsonObject){
         return orderController.searchClient(jsonObject);
     }
+
+    @POST
+    @Path("/changeStatus")
+    @Produces("application/json")
+    @Consumes("application/json")
+    public JsonObject changeStatus (JsonObject jsonObject){
+        return orderController.changeStatus(jsonObject);
+    }
 }

@@ -286,4 +286,25 @@ public class OrderController {
         }
         return  response.build();
     }
+
+    public JsonObject changeStatus(JsonObject requestObject){
+        JsonObjectBuilder response = null;
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction t = em.getTransaction();
+        try{
+            t.begin();
+            String auxId = requestObject.getString("pedidoId");
+            Integer id = Integer.parseInt(auxId);
+            PedidoCabecera pedidoCabecera = em.find(PedidoCabecera.class,id);
+            pedidoCabecera.setEstado(EnumCJ.ESTADO_ELIMINADO.getEstado());
+            em.merge(pedidoCabecera);
+            response = Json.createObjectBuilder().add("error","0");
+        }catch (Exception e){
+            log.log(Level.SEVERE, "ERROR WHEN STORING THE NEW ORDER",e);
+            response = Json.createObjectBuilder().add("error","1");
+        }finally {
+            t.commit();
+        }
+        return  response.build();
+    }
 }
