@@ -109,6 +109,53 @@ public class OrderController {
         return arrayBuilder;
     }
 
+    public JsonObject getOrder4date(JsonObject requestObject){
+        JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
+        try{
+            String finicial = requestObject.getString("finicial");
+            String ffinal = requestObject.getString("ffinal");
+            EntityManager entityManager = emf.createEntityManager();
+            String sqlQuery ="select c.id , c.fecha as fechaEntrega, c.total, tp.nombre, tp.direccion, tp.telefono , STRING_AGG(d.descripcion ,', ') , c.freal, c.estado      " +
+                    "                     from cjconfecciones.tpedidocabecera as c,     " +
+                    "                       cjconfecciones.tpedidodetalle as d,     " +
+                    "                       cjconfecciones.tcliente as cli,     " +
+                    "                       cjconfecciones.tpersona as tp     " +
+                    "                     where  c.id = d.ccabecera     " +
+                    "                     and c.ccliente = cli.id     " +
+                    "                     and cli.idpersona = tp.cedula     " +
+                    "                     and c.estado not in ('E') " +
+                    "                     and c.freal between to_date(:finicial,'dd-MM-yyyy') and to_date(:ffinal,'dd-MM-yyyy') " +
+                    "                     group by c.id , c.fecha, c.total, tp.nombre, tp.direccion,tp.telefono     " +
+                    "                      order by c.id desc ";
+            Query query = entityManager.createNativeQuery(sqlQuery);
+            query.setParameter("finicial",finicial);
+            query.setParameter("ffinal",ffinal);
+            List<Object[]> resultados = query.getResultList();
+            JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
+            jsonBuilder.add("error", 0);
+            for (Object[] resultado : resultados){
+                JsonObjectBuilder obj = Json.createObjectBuilder();
+                obj.add("id", Integer.parseInt(String.valueOf(resultado[0])));
+                obj.add("fechaEntrega", String.valueOf(resultado[1]));
+                obj.add("total", new BigDecimal(String.valueOf(resultado[2])));
+                obj.add("nombre", String.valueOf(resultado[3]));
+                obj.add("direccion", String.valueOf(resultado[4]));
+                obj.add("telefono", String.valueOf(resultado[5]));
+                obj.add("detalle", String.valueOf(resultado[6]));
+                obj.add("freal", String.valueOf(resultado[7]));
+                obj.add("estado", String.valueOf(resultado[8]));
+                arrayBuilder.add(obj);
+            }
+            jsonBuilder.add("pedidos", arrayBuilder);
+            entityManager.close();
+        }catch (Exception e){
+            log.log(Level.SEVERE, "ERROR TO GET ORDERS ",e);
+            jsonBuilder.add("error","1");
+        }
+        return jsonBuilder.build();
+    }
+
+
     public JsonObject getOrders(){
         JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
         try{
@@ -121,6 +168,7 @@ public class OrderController {
                     "where  c.id = d.ccabecera " +
                     "and  c.ccliente = cli.id " +
                     "and  cli.idpersona = tp.cedula " +
+                    " and c.estado not in ('E') "+
                     "group by c.id , c.fecha, c.total, tp.nombre, tp.direccion,tp.telefono " +
                     " order by c.id desc ";
 

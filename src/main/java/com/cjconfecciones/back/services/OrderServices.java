@@ -30,6 +30,14 @@ public class OrderServices {
     }
 
     @POST
+    @Path("/getOrders4date")
+    @Produces("application/json")
+    @Consumes("application/json")
+    public JsonObject getOrders4date(){
+        return orderController.getOrders();
+    }
+
+    @POST
     @Path("/new")
     @Produces("application/json")
     @Consumes("application/json")
