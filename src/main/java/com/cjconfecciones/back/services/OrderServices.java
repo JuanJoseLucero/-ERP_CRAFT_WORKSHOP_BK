@@ -33,8 +33,8 @@ public class OrderServices {
     @Path("/getOrders4date")
     @Produces("application/json")
     @Consumes("application/json")
-    public JsonObject getOrders4date(){
-        return orderController.getOrders();
+    public JsonObject getOrders4date(JsonObject jsonObject){
+        return orderController.getOrder4date(jsonObject);
     }
 
     @POST
