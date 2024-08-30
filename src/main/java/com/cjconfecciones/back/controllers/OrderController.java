@@ -4,11 +4,14 @@ import com.cjconfecciones.back.entities.Cliente;
 import com.cjconfecciones.back.entities.PedidoCabecera;
 import com.cjconfecciones.back.entities.PedidoDetalle;
 import com.cjconfecciones.back.entities.Persona;
+import com.cjconfecciones.back.util.ClientEndPoint;
 import com.cjconfecciones.back.util.EnumCJ;
+import com.cjconfecciones.back.util.Propiedades;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
 import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import jakarta.json.*;
 import jakarta.persistence.*;
@@ -18,6 +21,7 @@ import java.io.StringReader;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,6 +32,12 @@ public class OrderController {
 
     @PersistenceUnit(name = "unitPersistence")
     private EntityManagerFactory emf;
+
+    @Inject
+    private Propiedades propiedades;
+    @Inject
+    private ClientEndPoint apiRestClient;
+
     Logger log = Logger.getLogger(OrderController.class.getName());
 
     public JsonObject getOrderById(JsonObject requestObject){
@@ -326,6 +336,14 @@ public class OrderController {
             }
             log.info("REGISTRO GUARDADO CORRECTAMENTE");
             t.commit();
+            /** Envio de notificacion */
+            HashMap<String,Object> map = new HashMap<>();
+            map.put("celular","593998348972");
+            map.put("orderId",pedidoCabecera.getId());
+            map.put("status","NUEVA");
+
+            JsonObject jsonObjectResponse = apiRestClient.consumirServicosWebWS(JsonObject.class, propiedades,map);
+            //log.info("Respuesta del JsonObjectResponse ".concat(jsonObjectResponse.toString()));
             response = Json.createObjectBuilder().add("error","0");
         }catch (Exception e){
             log.log(Level.SEVERE, "ERROR WHEN STORING THE NEW ORDER",e);

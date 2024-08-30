@@ -5,17 +5,21 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Named;
+import org.apache.hc.client5.http.classic.methods.HttpHead;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 
 import java.io.Closeable;
 import java.lang.reflect.Type;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -47,6 +51,63 @@ public class ClientEndPoint {
         }
         return response;
     }
+
+
+    public <T> T consumirServicosWebWS(Class<T> classResponse, Propiedades propiedades, Map<String,Object> params){
+        String url = propiedades.getParametrosProperties("urlWhatsApp");
+        String json = propiedades.getParametrosProperties("plantillaMsg");
+        json = json.replace("{celular}", String.valueOf(params.get("celular")))
+                .replace("{orderId}",String.valueOf(params.get("orderId")))
+                .replace("{status}",String.valueOf(params.get("status")));
+        log.info("url ".concat(url));
+        log.info("JSON DE WHATSSAPP ".concat(json));
+        T response = null;
+
+        try(CloseableHttpClient httpClient = HttpClients.createDefault()){
+            HttpPost httpPost = new HttpPost(url);
+            httpPost.setHeader("Content-Type", "application/json");
+            httpPost.setHeader(HttpHeaders.AUTHORIZATION ,"Bearer ".concat(propiedades.getParametrosProperties("token")));
+            httpPost.setEntity(new StringEntity(json));
+            printRequest(httpPost);
+            HttpResponse responseHttp = httpClient.execute(httpPost);
+            if (responseHttp.getCode() == 200){
+                log.info("CONSUME OK");
+                HttpEntity entity = ((CloseableHttpResponse) responseHttp).getEntity();
+                String jsonResponse = entity != null ? EntityUtils.toString(entity):"";
+                Type tipoRespuesta = TypeToken.getParameterized(classResponse).getType();
+                //response = new Gson().fromJson(jsonResponse, tipoRespuesta);
+            }else{
+                HttpEntity entity = ((CloseableHttpResponse) responseHttp).getEntity();
+                String jsonResponse = entity != null ? EntityUtils.toString(entity):"";
+                log.info("ANTES");
+                log.info(jsonResponse);
+                log.info("ERROR WS ".concat(responseHttp.getCode()+""));
+            }
+        }catch (Exception e){
+            log.log(Level.SEVERE, "ERROR WHEN CONSUME WS ",e);
+        }
+        return response;
+    }
+
+    private static void printRequest(HttpPost request) {
+        try {
+        System.out.println("HTTP Method: " + request.getMethod());
+        System.out.println("Request URI: " + request.getUri());
+        System.out.println("HTTP Headers:");
+        Header[] headers = request.getHeaders();
+            for (Header header : headers) {
+                System.out.println(header.getName() + ": " + header.getValue());
+            }
+
+        // Imprime el cuerpo de la solicitud
+
+            String requestBody = EntityUtils.toString(request.getEntity());
+            System.out.println("Request Body: " + requestBody);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 
     /**
      *     public static <T> T consumirServicioWeb(Class<T> claseRespuesta) {
