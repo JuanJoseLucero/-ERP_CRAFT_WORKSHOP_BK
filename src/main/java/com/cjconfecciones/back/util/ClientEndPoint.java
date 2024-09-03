@@ -52,17 +52,45 @@ public class ClientEndPoint {
         return response;
     }
 
+    public  String plantillaCJCONFECCIONES (Map<String,Object> params,Propiedades propiedades){
+        String json = "";
+        try{
+            json = propiedades.getParametrosProperties("plantillaMsg");
+            json = json.replace("{celular}", String.valueOf(params.get("celular")))
+                    .replace("{orderId}",String.valueOf(params.get("orderId")))
+                    .replace("{status}",String.valueOf(params.get("status")));
+            log.info("JSON DE WHATSSAPP ".concat(json));
+        }catch (Exception e){
+            log.log(Level.SEVERE, "ERROR TO PLANTILLA ",e);
+        }
+        return json;
+    }
+    public  String plantillaCliente(Map<String,Object> params, Propiedades propiedades){
+        String json = "";
+        try{
+            json = propiedades.getParametrosProperties("plantillaDetalle");
+            json = json.replace("{celular}", String.valueOf(params.get("celular")))
+                    .replace("{date}",String.valueOf(params.get("date")))
+                    .replace("{detalle}",String.valueOf(params.get("detalle")));
+            log.info("JSON DE WHATSSAPP ".concat(json));
+        }catch (Exception e){
+            log.log(Level.SEVERE, "ERROR TO PLANTILLA ",e);
+        }
+        return json;
+    }
 
-    public <T> T consumirServicosWebWS(Class<T> classResponse, Propiedades propiedades, Map<String,Object> params){
+    public <T> T consumirServicosWebWS(Class<T> classResponse, Propiedades propiedades, Map<String,Object> params, String plantilla){
         String url = propiedades.getParametrosProperties("urlWhatsApp");
-        String json = propiedades.getParametrosProperties("plantillaMsg");
-        json = json.replace("{celular}", String.valueOf(params.get("celular")))
-                .replace("{orderId}",String.valueOf(params.get("orderId")))
-                .replace("{status}",String.valueOf(params.get("status")));
-        log.info("url ".concat(url));
-        log.info("JSON DE WHATSSAPP ".concat(json));
+        String json = "";
+        switch (plantilla){
+            case "1":
+                json = plantillaCJCONFECCIONES(params,propiedades);
+                break;
+            case "2":
+                json = plantillaCliente(params,propiedades);
+                break;
+        }
         T response = null;
-
         try(CloseableHttpClient httpClient = HttpClients.createDefault()){
             HttpPost httpPost = new HttpPost(url);
             httpPost.setHeader("Content-Type", "application/json");

@@ -23,6 +23,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -295,6 +296,7 @@ public class OrderController {
             }
 
             //JsonObject cabecera = requestObject.getJsonObject("detalle")
+            String detalleConsolidado = "";
             JsonArray detallesJson = requestObject.getJsonArray("lstDetailBill");
             for (int i = 0; i< detallesJson.size(); i++){
                 JsonObject detalle  =detallesJson.getJsonObject(i);
@@ -308,6 +310,7 @@ public class OrderController {
                         pedidoDetalle.setFecha(sdf.parse(detalle.getString("fechaCadena")));
                         pedidoDetalle.setUnidades(detalle.getJsonNumber("unidades").bigDecimalValue());
                         pedidoDetalle.setDescripcion(detalle.getString("descripcion"));
+                        detalleConsolidado = detalleConsolidado.concat(",").concat(pedidoDetalle.getDescripcion());
                         pedidoDetalle.setVunitario(detalle.getJsonNumber("valorUnitario").bigDecimalValue());
                         pedidoDetalle.setValorunitariofinal(detalle.getJsonNumber("valorFinal").bigDecimalValue());
                         pedidoDetalle.setTotal(detalle.getJsonNumber("total").bigDecimalValue());
@@ -324,6 +327,7 @@ public class OrderController {
                     pedidoDetalle.setFecha(new Date());
                     pedidoDetalle.setUnidades(detalle.getJsonNumber("unidades").bigDecimalValue());
                     pedidoDetalle.setDescripcion(detalle.getString("descripcion"));
+                    detalleConsolidado = detalleConsolidado.concat(",").concat(pedidoDetalle.getDescripcion());
                     pedidoDetalle.setVunitario(detalle.getJsonNumber("valorUnitario") !=null ?detalle.getJsonNumber("valorUnitario").bigDecimalValue():BigDecimal.ZERO);
                     pedidoDetalle.setValorunitariofinal(detalle.getJsonNumber("valorFinal").bigDecimalValue());
                     pedidoDetalle.setTotal(detalle.getJsonNumber("total")!=null?detalle.getJsonNumber("total").bigDecimalValue():BigDecimal.ZERO);
@@ -338,12 +342,21 @@ public class OrderController {
             t.commit();
             /** Envio de notificacion */
             HashMap<String,Object> map = new HashMap<>();
-            map.put("celular","593998348972");
-            map.put("orderId",pedidoCabecera.getId());
+            map.put("celular",propiedades.getParametrosProperties("notificationNumber"));
+            map.put("orderId",String.valueOf(pedidoCabecera.getId()).concat("-").concat(personaSearch.getNombre()!=null?personaSearch.getNombre():persona.getNombre()));
             map.put("status","NUEVA");
+            JsonObject jsonObjectResponse = apiRestClient.consumirServicosWebWS(JsonObject.class, propiedades,map,"1");
 
-            JsonObject jsonObjectResponse = apiRestClient.consumirServicosWebWS(JsonObject.class, propiedades,map);
-            //log.info("Respuesta del JsonObjectResponse ".concat(jsonObjectResponse.toString()));
+            /** Envio de notificacion cliente*/
+            SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
+            HashMap<String,Object> mapCliente = new HashMap<>();
+            String celularCliente = "593".concat(personaSearch.getTelefono()!=null?personaSearch.getTelefono():persona.getTelefono());
+            log.info("CELULAR CLIENTE ".concat(celularCliente));
+            map.put("celular",celularCliente);
+            map.put("date",  formatter.format(pedidoCabecera.getFecha()));
+            map.put("detalle",detalleConsolidado);
+            jsonObjectResponse = apiRestClient.consumirServicosWebWS(JsonObject.class, propiedades,map,"2");
+
             response = Json.createObjectBuilder().add("error","0");
         }catch (Exception e){
             log.log(Level.SEVERE, "ERROR WHEN STORING THE NEW ORDER",e);
