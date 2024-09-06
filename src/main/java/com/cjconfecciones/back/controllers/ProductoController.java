@@ -8,10 +8,7 @@ import jakarta.json.Json;
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.PersistenceUnit;
-import jakarta.persistence.Query;
+import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -26,6 +23,26 @@ public class ProductoController {
     private EntityManagerFactory emf;
 
     Logger log = Logger.getLogger(ProductoController.class.getName());
+
+    public JsonObject persistProduct(JsonObject data){
+        JsonObjectBuilder response = Json.createObjectBuilder();
+        try{
+            Producto producto = Producto.builder()
+                    .codigosri(data.getString("codigosri"))
+                    .descripcion(data.getString("descripcion"))
+                    .valor(data.getJsonNumber("valor").bigDecimalValue())
+                    .tipoproducto(data.getString("tipoproducto"))
+                    .build();
+            EntityManager em = emf.createEntityManager();
+            EntityTransaction transaction = em.getTransaction();
+            transaction.begin();
+            em.persist(producto);
+            transaction.commit();
+        }catch (Exception e){
+            log.log(Level.SEVERE, "ERROR TO PERSIST PRODUCTS ",e);
+        }
+        return response.build();
+    }
 
     public JsonObject getLstProductos(){
         JsonObjectBuilder jsonObjectBuilder = Json.createObjectBuilder();
