@@ -2,7 +2,8 @@ package com.cjconfecciones.back.util;
 
 
 public enum EnumCJ {
-
+    ESTADO_OK ("0","PROCESO OK"),
+    ESTADO_ERROR ("1","ERROR EN EL PROCESO"),
     ESTADO_ELIMINADO ("E","ESTADO ELIMINADO"),
     ESTADO_PAGADO ("P","ORDEN DE TRABAJO PAGADO"),
     ESTADO_ABONADO ("AB","ORDEN DE TRABAJO ABONADO"),
