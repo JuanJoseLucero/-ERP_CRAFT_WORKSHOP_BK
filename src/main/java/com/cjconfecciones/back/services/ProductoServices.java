@@ -31,6 +31,16 @@ public class ProductoServices {
     }
 
     @POST
+    @Path("update4Id")
+    public Response update4Id(JsonObject  data){
+        try{
+            return Response.ok(productoController.update4Id(data)).build();
+        }catch (Exception e){
+            log.log(Level.SEVERE, "ERROR UPDATE 4 ID ",e);
+        }
+        return Response.serverError().build();
+    }
+    @POST
     @Path("get4Id")
     public Response get4Id(JsonObject  data){
         try{

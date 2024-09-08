@@ -39,10 +39,36 @@ public class ProductoController {
             em.persist(producto);
             transaction.commit();
         }catch (Exception e){
+            response = Json.createObjectBuilder();
             response.add("error", EnumCJ.ESTADO_ERROR.getEstado());
             log.log(Level.SEVERE, "ERROR TO PERSIST PRODUCTS ",e);
         }
         return response.build();
+    }
+
+    public JsonObject update4Id(JsonObject data){
+        JsonObjectBuilder response = Json.createObjectBuilder();
+        try{
+            Producto producto = Producto.builder()
+                    .id(data.getInt("id"))
+                    .codigosri(data.getString("codigosri"))
+                    .descripcion(data.getString("descripcion"))
+                    .valor(data.getJsonNumber("valor").bigDecimalValue())
+                    .tipoproducto(data.getString("tipoproducto"))
+                    .build();
+            EntityManager entityManager = emf.createEntityManager();
+            EntityTransaction transaction = entityManager.getTransaction();
+            transaction.begin();
+            entityManager.merge(producto);
+            transaction.commit();
+            response.add("error", EnumCJ.ESTADO_OK.getEstado());
+            return response.build();
+        }catch (Exception e){
+            response = Json.createObjectBuilder();
+            response.add("error", EnumCJ.ESTADO_ERROR.getEstado());
+            log.log(Level.SEVERE, "ERROR TO PERSIST PRODUCTS ",e);
+            return response.build();
+        }
     }
 
     public JsonObject getProductById(JsonObject data){
