@@ -39,10 +39,33 @@ public class ProductoController {
             em.persist(producto);
             transaction.commit();
         }catch (Exception e){
+            response.add("error", EnumCJ.ESTADO_ERROR.getEstado());
             log.log(Level.SEVERE, "ERROR TO PERSIST PRODUCTS ",e);
         }
         return response.build();
     }
+
+    public JsonObject getProductById(JsonObject data){
+        JsonObjectBuilder response = Json.createObjectBuilder();
+        try{
+            EntityManager entityManager = emf.createEntityManager();
+            String sqlQuery ="select id, codigosri, descripcion, valor, tipoproducto from cjconfecciones.tproducto where id = :id";
+            Query query = entityManager.createNativeQuery(sqlQuery);
+            query.setParameter("id",data.getInt("id"));
+            List<Object[]> resultados = query.getResultList();
+            response.add("id", String.valueOf(resultados.get(0)[0]));
+            response.add("codigosri", String.valueOf(resultados.get(0)[1]));
+            response.add("descripcion", String.valueOf(resultados.get(0)[2]));
+            response.add("valor", new BigDecimal(String.valueOf(resultados.get(0)[3])));
+            response.add("tipoproducto", String.valueOf(resultados.get(0)[4]));
+        }catch (Exception e){
+            log.log(Level.SEVERE, "ERROR GET TO PRODUCT BY ID",e);
+            response = Json.createObjectBuilder();
+            response.add("error", EnumCJ.ESTADO_ERROR.getEstado());
+        }
+        return response.build();
+    }
+
 
     public JsonObject getLstProductos(){
         JsonObjectBuilder jsonObjectBuilder = Json.createObjectBuilder();
@@ -65,6 +88,7 @@ public class ProductoController {
             jsonObjectBuilder.add("error", EnumCJ.ESTADO_OK.getEstado());
             jsonObjectBuilder.add("productos",lstProducts);
         }catch (Exception e){
+            jsonObjectBuilder.add("error", EnumCJ.ESTADO_ERROR.getEstado());
             log.log(Level.SEVERE,"ERROR TO GET PRODUCTOS ",e);
         }
         return jsonObjectBuilder.build();

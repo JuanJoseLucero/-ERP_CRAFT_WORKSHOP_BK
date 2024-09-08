@@ -2,6 +2,7 @@ package com.cjconfecciones.back.services;
 
 import com.cjconfecciones.back.controllers.ProductoController;
 import jakarta.inject.Inject;
+import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -27,6 +28,17 @@ public class ProductoServices {
             log.log(Level.SEVERE, "ERROR SAVE PRODUCTS ",e);
             return  Response.serverError().build();
         }
+    }
+
+    @POST
+    @Path("get4Id")
+    public Response get4Id(JsonObject  data){
+        try{
+            return Response.ok(productoController.getProductById(data)).build();
+        }catch (Exception e){
+            log.log(Level.SEVERE, "ERROR GET PRODUCT 4 ID ",e);
+        }
+        return Response.serverError().build();
     }
 
     @POST
