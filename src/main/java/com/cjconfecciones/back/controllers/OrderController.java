@@ -7,23 +7,21 @@ import com.cjconfecciones.back.entities.Persona;
 import com.cjconfecciones.back.util.ClientEndPoint;
 import com.cjconfecciones.back.util.EnumCJ;
 import com.cjconfecciones.back.util.Propiedades;
+import com.cjconfecciones.back.util.Util;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonParser;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import jakarta.json.*;
 import jakarta.persistence.*;
 
-import javax.swing.*;
 import java.io.StringReader;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -33,11 +31,14 @@ public class OrderController {
 
     @PersistenceUnit(name = "unitPersistence")
     private EntityManagerFactory emf;
-
     @Inject
     private Propiedades propiedades;
     @Inject
     private ClientEndPoint apiRestClient;
+    @Inject
+    private ProductoController productoController;
+    @Inject
+    private Util util;
 
     Logger log = Logger.getLogger(OrderController.class.getName());
 
@@ -322,7 +323,8 @@ public class OrderController {
 
                     }
                 }else{
-                    log.info("PEDIDO DETALLE FOUND");
+                    log.info("NUEVO PEDIDO DETALLE");
+                    JsonObject createProduct = createNewProduct(detalle);
                     pedidoDetalle = new PedidoDetalle();
                     pedidoDetalle.setFecha(new Date());
                     pedidoDetalle.setUnidades(detalle.getJsonNumber("unidades").bigDecimalValue());
@@ -335,6 +337,7 @@ public class OrderController {
                     pedidoDetalle.setCcabecera(pedidoCabecera.getId());
                     pedidoDetalle.setSubvalorfactura(detalle.getJsonNumber("subValorFactura").bigDecimalValue());
                     pedidoDetalle.setTipo(detalle.getString("tipo"));
+                    pedidoDetalle.setProductoid(createProduct.getInt("codeId"));
                     em.persist(pedidoDetalle);
                 }
             }
@@ -345,7 +348,7 @@ public class OrderController {
             map.put("celular",propiedades.getParametrosProperties("notificationNumber"));
             map.put("orderId",String.valueOf(pedidoCabecera.getId()).concat("-").concat(personaSearch.getNombre()!=null?personaSearch.getNombre():persona.getNombre()));
             map.put("status","NUEVA");
-            JsonObject jsonObjectResponse = apiRestClient.consumirServicosWebWS(JsonObject.class, propiedades,map,"1");
+            //JsonObject jsonObjectResponse = apiRestClient.consumirServicosWebWS(JsonObject.class, propiedades,map,"1");
 
             /** Envio de notificacion cliente*/
             SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
@@ -355,7 +358,7 @@ public class OrderController {
             map.put("celular",celularCliente);
             map.put("date",  formatter.format(pedidoCabecera.getFecha()));
             map.put("detalle",detalleConsolidado);
-            jsonObjectResponse = apiRestClient.consumirServicosWebWS(JsonObject.class, propiedades,map,"2");
+            //jsonObjectResponse = apiRestClient.consumirServicosWebWS(JsonObject.class, propiedades,map,"2");
 
             response = Json.createObjectBuilder().add("error","0");
         }catch (Exception e){
@@ -364,6 +367,32 @@ public class OrderController {
             t.rollback();
         }
         return  response.build();
+    }
+
+    private JsonObject createNewProduct(JsonObject detalle) {
+        JsonObjectBuilder response = Json.createObjectBuilder();
+        JsonObject respJsonObject = null;
+        try {
+            if(detalle.getString("tipo").equals(EnumCJ.TIPO_ESTAMPADO.getEstado())){
+                JsonObjectBuilder json = Json.createObjectBuilder();
+                json.add("codigosri", util.nextValueProduct(emf.createEntityManager(),
+                                "seq_producto_sri",
+                                propiedades.getParametrosProperties("numeroCerosProductos")))
+                        .add("descripcion", detalle.getString("descripcion"))
+                        .add("valorunitario",  detalle.getJsonNumber("valorFinal").bigDecimalValue())
+                        .add("unidades",  detalle.getJsonNumber("unidades").bigDecimalValue())
+                        .add("valor",  detalle.getJsonNumber("subValorFactura").bigDecimalValue())
+                        .add("tipoproducto",EnumCJ.TIPO_ESTAMPADO.getEstado());
+                respJsonObject= this.productoController.persistProduct(json.build());
+            }
+            return respJsonObject;
+            //return true;
+        }catch (Exception e){
+            response = Json.createObjectBuilder();
+            response.add("error", EnumCJ.ESTADO_ERROR.getEstado());
+            log.log(Level.SEVERE, "ERROR TO CREATE NEW PRODUCT ",e);
+            return response.build();
+        }
     }
 
     public JsonObject changeStatus(JsonObject requestObject){

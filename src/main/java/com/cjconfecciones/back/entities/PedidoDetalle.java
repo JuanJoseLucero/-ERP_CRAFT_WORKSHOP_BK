@@ -30,5 +30,6 @@ public class PedidoDetalle {
     private BigDecimal valorunitariofinal;
     private BigDecimal subvalorfactura;
     private String tipo;
+    private Integer productoid;
 
 }
