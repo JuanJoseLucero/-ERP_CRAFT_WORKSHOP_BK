@@ -20,6 +20,17 @@ public class ProductoServices {
     Logger log = Logger.getLogger(ProductoServices.class.getName());
 
     @POST
+    @Path("autocompleteProduct")
+    public Response autocompleteProduct(JsonObject textJson){
+        try{
+            return Response.ok(productoController.search4Description4Client(textJson)).build();
+        }catch (Exception e){
+            log.log(Level.SEVERE, "ERROR AUTOCOMPLETE ",e);
+            return Response.serverError().build();
+        }
+    }
+
+    @POST
     @Path("saveProducts")
     public Response saveProducts(JsonObject productos){
         try {

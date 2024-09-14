@@ -24,6 +24,43 @@ public class ProductoController {
 
     Logger log = Logger.getLogger(ProductoController.class.getName());
 
+    public JsonObject search4Description4Client(JsonObject data){
+        JsonObjectBuilder jsonObjectBuilder = Json.createObjectBuilder();
+        try {
+            EntityManager entityManager = emf.createEntityManager();
+            String sqlQuery ="select  tp.descripcion , tp.valorunitario  " +
+                    "from  tpersona p, " +
+                    "  tcliente c, " +
+                    "  tpedidocabecera pc, " +
+                    "  tpedidodetalle pd, " +
+                    "  tproducto tp " +
+                    "  where p.cedula = c.idpersona  " +
+                    "  and c.id =pc.ccliente " +
+                    "  and pd.ccabecera = pc.id " +
+                    "  and tp.id = pd.productoid  " +
+                    "  and pc.estado <> 'E' " +
+                    "  and p.cedula = :cedula " +
+                    "  and tp.descripcion like :description ";
+            Query query = entityManager.createNativeQuery(sqlQuery);
+            query.setParameter("cedula",data.getString("cedula"));
+            query.setParameter("description","%".concat(data.getString("descripcion")).concat("%"));
+            List<Object[]> resultados = query.getResultList();
+            JsonArrayBuilder arrayJson = Json.createArrayBuilder();
+            for(Object[] celdas : resultados){
+                JsonObjectBuilder item = Json.createObjectBuilder();
+                item.add("descripcion", String.valueOf(celdas[0]))
+                        .add("valorUnitario",String.valueOf(celdas[1]));
+                arrayJson.add(item);
+            }
+            jsonObjectBuilder.add("error" ,EnumCJ.ESTADO_OK.getEstado())
+                    .add("products",arrayJson);
+        }catch (Exception e ){
+            log.log(Level.SEVERE, "ERROR TO SEARCH DESCRIPTION ",e);
+            jsonObjectBuilder.add("error",EnumCJ.ESTADO_ERROR.getEstado());
+        }
+        return jsonObjectBuilder.build();
+    }
+
     public JsonObject persistProduct(JsonObject data){
         JsonObjectBuilder response = Json.createObjectBuilder();
         try{
