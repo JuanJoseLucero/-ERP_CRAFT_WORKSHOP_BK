@@ -72,7 +72,23 @@ public class OrderController {
 
 
             /**Get detail orders **/
-            String sqlDetailOrder = "select d.id , d.unidades , d.descripcion , d.vunitario , d.total , d.fecha, d.valorunitariofinal, d.puntadas, d.subvalorfactura ,d.tipo from cjconfecciones.tpedidodetalle as d where d.ccabecera  = :ccabecera";
+            String sqlDetailOrder = "select " +
+                    " d.id , " +
+                    " d.unidades , " +
+                    " p.descripcion , " +
+                    " COALESCE (p.subtotalvalorpuntada,'0') , " +
+                    " d.total , " +
+                    " d.fecha, " +
+                    " p.valorunitario, " +
+                    " COALESCE (p.puntadas,'0') , " +
+                    " d.total , " +
+                    " p.tipoproducto  " +
+                    "from " +
+                    " cjconfecciones.tpedidodetalle as d, " +
+                    " cjconfecciones.tproducto as p " +
+                    "where " +
+                    " d.productoid = p.id  " +
+                    " and d.ccabecera = :ccabecera";
             Query query = em.createNativeQuery(sqlDetailOrder);
             query.setParameter("ccabecera",id);
             List<Object[]> resultados = query.getResultList();
@@ -127,14 +143,16 @@ public class OrderController {
             String finicial = requestObject.getString("finicial");
             String ffinal = requestObject.getString("ffinal");
             EntityManager entityManager = emf.createEntityManager();
-            String sqlQuery ="select c.id , c.fecha as fechaEntrega, c.total, tp.nombre, tp.direccion, tp.telefono , STRING_AGG(d.descripcion ,', ') , c.freal, c.estado      " +
+            String sqlQuery ="select c.id , c.fecha as fechaEntrega, c.total, tp.nombre, tp.direccion, tp.telefono , STRING_AGG(tpro.descripcion ,', ') , c.freal, c.estado      " +
                     "                     from cjconfecciones.tpedidocabecera as c,     " +
                     "                       cjconfecciones.tpedidodetalle as d,     " +
                     "                       cjconfecciones.tcliente as cli,     " +
-                    "                       cjconfecciones.tpersona as tp     " +
+                    "                       cjconfecciones.tpersona as tp,     " +
+                    "                       cjconfecciones.tproducto as tpro "+
                     "                     where  c.id = d.ccabecera     " +
                     "                     and c.ccliente = cli.id     " +
                     "                     and cli.idpersona = tp.cedula     " +
+                    "                     and d.productoid = tpro.id " +
                     "                     and c.estado not in ('E') " +
                     "                     and c.freal between to_date(:finicial,'dd-MM-yyyy') and to_date(:ffinal,'dd-MM-yyyy') " +
                     "                     group by c.id , c.fecha, c.total, tp.nombre, tp.direccion,tp.telefono     " +
@@ -310,15 +328,15 @@ public class OrderController {
                         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
                         pedidoDetalle.setFecha(sdf.parse(detalle.getString("fechaCadena")));
                         pedidoDetalle.setUnidades(detalle.getJsonNumber("unidades").bigDecimalValue());
-                        pedidoDetalle.setDescripcion(detalle.getString("descripcion"));
-                        detalleConsolidado = detalleConsolidado.concat(",").concat(pedidoDetalle.getDescripcion());
-                        pedidoDetalle.setVunitario(detalle.getJsonNumber("valorUnitario").bigDecimalValue());
-                        pedidoDetalle.setValorunitariofinal(detalle.getJsonNumber("valorFinal").bigDecimalValue());
+//                        pedidoDetalle.setDescripcion(detalle.getString("descripcion"));
+//                        detalleConsolidado = detalleConsolidado.concat(",").concat(pedidoDetalle.getDescripcion());
+//                        pedidoDetalle.setVunitario(detalle.getJsonNumber("valorUnitario").bigDecimalValue());
+//                        pedidoDetalle.setValorunitariofinal(detalle.getJsonNumber("valorFinal").bigDecimalValue());
                         pedidoDetalle.setTotal(detalle.getJsonNumber("total").bigDecimalValue());
-                        pedidoDetalle.setPuntadas(detalle.getJsonNumber("puntadas").bigDecimalValue());
+//                        pedidoDetalle.setPuntadas(detalle.getJsonNumber("puntadas").bigDecimalValue());
                         pedidoDetalle.setCcabecera(pedidoCabecera.getId());
-                        pedidoDetalle.setSubvalorfactura(detalle.getJsonNumber("subValorFactura").bigDecimalValue());
-                        pedidoDetalle.setTipo(detalle.getString("tipo"));
+//                        pedidoDetalle.setSubvalorfactura(detalle.getJsonNumber("subValorFactura").bigDecimalValue());
+//                        pedidoDetalle.setTipo(detalle.getString("tipo"));
                         em.merge(pedidoDetalle);
 
                     }
@@ -328,15 +346,15 @@ public class OrderController {
                     pedidoDetalle = new PedidoDetalle();
                     pedidoDetalle.setFecha(new Date());
                     pedidoDetalle.setUnidades(detalle.getJsonNumber("unidades").bigDecimalValue());
-                    pedidoDetalle.setDescripcion(detalle.getString("descripcion"));
-                    detalleConsolidado = detalleConsolidado.concat(",").concat(pedidoDetalle.getDescripcion());
-                    pedidoDetalle.setVunitario(detalle.getJsonNumber("valorUnitario") !=null ?detalle.getJsonNumber("valorUnitario").bigDecimalValue():BigDecimal.ZERO);
-                    pedidoDetalle.setValorunitariofinal(detalle.getJsonNumber("valorFinal").bigDecimalValue());
+//                    pedidoDetalle.setDescripcion(detalle.getString("descripcion"));
+//                    detalleConsolidado = detalleConsolidado.concat(",").concat(pedidoDetalle.getDescripcion());
+//                    pedidoDetalle.setVunitario(detalle.getJsonNumber("valorUnitario") !=null ?detalle.getJsonNumber("valorUnitario").bigDecimalValue():BigDecimal.ZERO);
+//                    pedidoDetalle.setValorunitariofinal(detalle.getJsonNumber("valorFinal").bigDecimalValue());
                     pedidoDetalle.setTotal(detalle.getJsonNumber("total")!=null?detalle.getJsonNumber("total").bigDecimalValue():BigDecimal.ZERO);
-                    pedidoDetalle.setPuntadas(detalle.getJsonNumber("puntadas")!=null?detalle.getJsonNumber("puntadas").bigDecimalValue():BigDecimal.ZERO);
+//                    pedidoDetalle.setPuntadas(detalle.getJsonNumber("puntadas")!=null?detalle.getJsonNumber("puntadas").bigDecimalValue():BigDecimal.ZERO);
                     pedidoDetalle.setCcabecera(pedidoCabecera.getId());
-                    pedidoDetalle.setSubvalorfactura(detalle.getJsonNumber("subValorFactura").bigDecimalValue());
-                    pedidoDetalle.setTipo(detalle.getString("tipo"));
+//                    pedidoDetalle.setSubvalorfactura(detalle.getJsonNumber("subValorFactura").bigDecimalValue());
+//                    pedidoDetalle.setTipo(detalle.getString("tipo"));
                     pedidoDetalle.setProductoid(createProduct.getInt("codeId"));
                     em.persist(pedidoDetalle);
                 }
@@ -380,8 +398,6 @@ public class OrderController {
                                 propiedades.getParametrosProperties("numeroCerosProductos")))
                         .add("descripcion", detalle.getString("descripcion"))
                         .add("valorunitario",  detalle.getJsonNumber("valorFinal").bigDecimalValue())
-                        .add("unidades",  detalle.getJsonNumber("unidades").bigDecimalValue())
-                        .add("valor",  detalle.getJsonNumber("subValorFactura").bigDecimalValue())
                         .add("tipoproducto",EnumCJ.TIPO_ESTAMPADO.getEstado());
                 respJsonObject= this.productoController.persistProduct(json.build());
             }

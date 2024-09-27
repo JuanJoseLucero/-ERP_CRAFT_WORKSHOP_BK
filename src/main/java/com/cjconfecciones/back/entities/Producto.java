@@ -20,8 +20,6 @@ public class Producto {
     private String codigosri;
     private String descripcion;
     private BigDecimal valorunitario;
-    private BigDecimal numeroprendas;
-    private BigDecimal subtotal;
     private String tipoproducto;
     private String tipoproductosri;
 }

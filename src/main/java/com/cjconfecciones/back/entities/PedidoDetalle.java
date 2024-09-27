@@ -22,14 +22,8 @@ public class PedidoDetalle {
     private Integer id;
     private Date fecha;
     private BigDecimal unidades;
-    private String descripcion;
-    private BigDecimal vunitario;
     private BigDecimal total;
     private Integer ccabecera;
-    private BigDecimal puntadas;
-    private BigDecimal valorunitariofinal;
-    private BigDecimal subvalorfactura;
-    private String tipo;
     private Integer productoid;
 
 }

@@ -28,7 +28,7 @@ public class ProductoController {
         JsonObjectBuilder jsonObjectBuilder = Json.createObjectBuilder();
         try {
             EntityManager entityManager = emf.createEntityManager();
-            String sqlQuery ="select  tp.descripcion , tp.valorunitario  " +
+            String sqlQuery ="select  tp.descripcion , tp.valorunitario, tp.id " +
                     "from  tpersona p, " +
                     "  tcliente c, " +
                     "  tpedidocabecera pc, " +
@@ -49,7 +49,8 @@ public class ProductoController {
             for(Object[] celdas : resultados){
                 JsonObjectBuilder item = Json.createObjectBuilder();
                 item.add("descripcion", String.valueOf(celdas[0]))
-                        .add("valorUnitario",String.valueOf(celdas[1]));
+                        .add("valorUnitario",String.valueOf(celdas[1]))
+                        .add("codigoId", new BigDecimal(String.valueOf(celdas[2])));
                 arrayJson.add(item);
             }
             jsonObjectBuilder.add("error" ,EnumCJ.ESTADO_OK.getEstado())
@@ -67,10 +68,8 @@ public class ProductoController {
             Producto producto = Producto.builder()
                     .codigosri(data.getString("codigosri"))
                     .descripcion(data.getString("descripcion"))
-                    .subtotal(data.getJsonNumber("valor").bigDecimalValue())
                     .tipoproducto(data.getString("tipoproducto"))
                     .valorunitario( data.getJsonNumber("valorunitario").bigDecimalValue())
-                    .numeroprendas(data.getJsonNumber("unidades").bigDecimalValue())
                     .tipoproducto(data.getString("tipoproducto"))
                     .tipoproductosri("B")
                     .build();
@@ -97,7 +96,7 @@ public class ProductoController {
                     .id(data.getInt("id"))
                     .codigosri(data.getString("codigosri"))
                     .descripcion(data.getString("descripcion"))
-                    .subtotal(data.getJsonNumber("valor").bigDecimalValue())
+//                    .subtotal(data.getJsonNumber("valor").bigDecimalValue())
                     .tipoproducto(data.getString("tipoproducto"))
                     .build();
             EntityManager entityManager = emf.createEntityManager();
