@@ -21,6 +21,9 @@ public class ClienteController implements Serializable {
 
     @PersistenceUnit(unitName = "unitPersistence")
     private EntityManagerFactory emf;
+    @PersistenceContext(unitName = "unitPersistence")
+    private EntityManager em;
+
     //private EntityManagerFactory emf = Persistence.createEntityManagerFactory("unitPersistence");
 
     Logger log = Logger.getLogger(ClienteController.class.getName());
@@ -38,7 +41,7 @@ public class ClienteController implements Serializable {
     }
 
 
-    public JsonObject searchClient4Name(JsonObject requestObject){
+    public JsonObject searchClient4NameOld(JsonObject requestObject){
         JsonObjectBuilder jsonObjectBuilder = Json.createObjectBuilder();
         try{
             String name = requestObject.getString("name");
@@ -66,6 +69,26 @@ public class ClienteController implements Serializable {
     }
 
 
-
+    public JsonObject searchClient4Name(JsonObject requestObject){
+        JsonObjectBuilder responseBuilder = Json.createObjectBuilder();
+        try{
+            List<Persona> personaList = em.createNamedQuery("Persona.buscarPorNombre", Persona.class)
+                    .setParameter("nombre", "%"+requestObject.getString("nombre")+"%")
+                    .getResultList();
+            JsonArrayBuilder listaNombres = Json.createArrayBuilder();
+            personaList.stream().map(p -> Json.createObjectBuilder()
+                    .add("cedula", p.getCedula())
+                    .add("nombre", p.getNombre())
+                    .add("telefono", p.getTelefono())
+                    .add("direccion",p.getDireccion()).build()
+            ).forEach(listaNombres::add);
+            responseBuilder.add("error","0")
+                    .add ("nombres", listaNombres);
+        }catch (Exception e){
+            log.log(Level.SEVERE, "ERROR EN SEARCH CLIENT ",e);
+            responseBuilder.add("error", "1");
+        }
+        return responseBuilder.build();
+    }
 
 }
