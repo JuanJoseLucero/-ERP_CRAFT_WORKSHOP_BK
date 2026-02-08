@@ -2,6 +2,7 @@ package com.cjconfecciones.back.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 
@@ -10,7 +11,9 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @Entity
-@Builder
+@SuperBuilder
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "TIPO")
 @Table(name= "TPRODUCTO", schema = "cjconfecciones")
 public class Producto {
 

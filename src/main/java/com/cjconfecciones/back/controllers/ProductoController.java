@@ -1,5 +1,6 @@
 package com.cjconfecciones.back.controllers;
 
+import com.cjconfecciones.back.entities.Bordado;
 import com.cjconfecciones.back.entities.Producto;
 import com.cjconfecciones.back.util.EnumCJ;
 import jakarta.enterprise.context.RequestScoped;
@@ -64,29 +65,56 @@ public class ProductoController {
 
     public JsonObject persistProduct(JsonObject data){
         JsonObjectBuilder response = Json.createObjectBuilder();
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction transaction = em.getTransaction();
         try{
-            Producto producto = Producto.builder()
-                    .codigosri(data.getString("codigosri"))
-                    .descripcion(data.getString("descripcion"))
-                    .tipoproducto(data.getString("tipoproducto"))
-                    .valorunitario( data.getJsonNumber("valorunitario").bigDecimalValue())
-                    .tipoproducto(data.getString("tipoproducto"))
-                    .tipoproductosri("B")
-                    .build();
-            EntityManager em = emf.createEntityManager();
-            EntityTransaction transaction = em.getTransaction();
             transaction.begin();
+            Producto producto = buildProducto(data);
             em.persist(producto);
             transaction.commit();
-            response = Json.createObjectBuilder();
             response.add("error", EnumCJ.ESTADO_OK.getEstado());
-            response.add("codeId" ,producto.getId());
+            response.add("codeId", producto.getId());
         }catch (Exception e){
             response = Json.createObjectBuilder();
             response.add("error", EnumCJ.ESTADO_ERROR.getEstado());
             log.log(Level.SEVERE, "ERROR TO PERSIST PRODUCTS ",e);
+        }finally {
+            em.close();
         }
         return response.build();
+    }
+
+    private Producto buildProducto(JsonObject data) {
+        String tipo = data.getString("tipoproducto");
+        if (EnumCJ.TIPO_BORDADO.getEstado().equals(tipo)) {
+            return buildBordado(data);
+        }
+        return buildProductoBase(data);
+    }
+
+
+    private Bordado buildBordado(JsonObject data) {
+        return Bordado.builder()
+                .codigosri(data.getString("codigosri"))
+                .descripcion(data.getString("descripcion"))
+                .tipoproducto(data.getString("tipoproducto"))
+                .puntadas(data.getJsonNumber("puntadas").bigDecimalValue())
+                .valorunitario(data.getJsonNumber("valorDisenioFinal").bigDecimalValue())
+                .valorpuntada(data.getJsonNumber("valorPuntada").bigDecimalValue())
+                .valordiseniocalculado(data.getJsonNumber("valorDisenioCalculado").bigDecimalValue())
+                .valordiseniofinal(data.getJsonNumber("valorDisenioFinal").bigDecimalValue())
+                .tipoproductosri("B")
+                .build();
+    }
+
+    private Producto buildProductoBase(JsonObject data) {
+        return Producto.builder()
+                .codigosri(data.getString("codigosri"))
+                .descripcion(data.getString("descripcion"))
+                .tipoproducto(data.getString("tipoproducto"))
+                .valorunitario(data.getJsonNumber("valorunitario").bigDecimalValue())
+                .tipoproductosri("B")
+                .build();
     }
 
     public JsonObject update4Id(JsonObject data){

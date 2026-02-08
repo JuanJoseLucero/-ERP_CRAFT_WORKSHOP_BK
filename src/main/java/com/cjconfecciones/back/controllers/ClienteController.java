@@ -72,8 +72,9 @@ public class ClienteController implements Serializable {
     public JsonObject searchClient4Name(JsonObject requestObject){
         JsonObjectBuilder responseBuilder = Json.createObjectBuilder();
         try{
+            log.info("LLEGO AL METODO DEL BACK");
             List<Persona> personaList = em.createNamedQuery("Persona.buscarPorNombre", Persona.class)
-                    .setParameter("nombre", "%"+requestObject.getString("nombre")+"%")
+                    .setParameter("nombre", "%"+requestObject.getString("nombres")+"%")
                     .getResultList();
             JsonArrayBuilder listaNombres = Json.createArrayBuilder();
             personaList.stream().map(p -> Json.createObjectBuilder()

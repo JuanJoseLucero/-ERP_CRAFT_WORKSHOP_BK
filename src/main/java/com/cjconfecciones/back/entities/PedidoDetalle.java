@@ -1,6 +1,5 @@
 package com.cjconfecciones.back.entities;
 
-import jakarta.inject.Named;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -355,7 +355,7 @@ public class OrderController {
                     pedidoDetalle.setCcabecera(pedidoCabecera.getId());
 //                    pedidoDetalle.setSubvalorfactura(detalle.getJsonNumber("subValorFactura").bigDecimalValue());
 //                    pedidoDetalle.setTipo(detalle.getString("tipo"));
-                    pedidoDetalle.setProductoid(createProduct.getInt("codeId"));
+                    pedidoDetalle.setProductoid(createProduct.getJsonNumber("codeId").intValue());
                     em.persist(pedidoDetalle);
                 }
             }
@@ -391,22 +391,27 @@ public class OrderController {
         JsonObjectBuilder response = Json.createObjectBuilder();
         JsonObject respJsonObject = null;
         try {
-            if(detalle.getString("tipo").equals(EnumCJ.TIPO_ESTAMPADO.getEstado())){
-                JsonObjectBuilder json = Json.createObjectBuilder();
-                json.add("codigosri", util.nextValueProduct(emf.createEntityManager(),
-                                "seq_producto_sri",
-                                propiedades.getParametrosProperties("numeroCerosProductos")))
-                        .add("descripcion", detalle.getString("descripcion"))
-                        .add("valorunitario",  detalle.getJsonNumber("valorFinal").bigDecimalValue())
-                        .add("tipoproducto",EnumCJ.TIPO_ESTAMPADO.getEstado());
-                respJsonObject= this.productoController.persistProduct(json.build());
+            String tipo = detalle.getString("tipo");
+            JsonObjectBuilder json = Json.createObjectBuilder();
+            json.add("codigosri", util.nextValueProduct(emf.createEntityManager(),
+                            "seq_producto_sri",
+                            propiedades.getParametrosProperties("numeroCerosProductos")))
+                    .add("descripcion", detalle.getString("descripcion"))
+                    .add("tipoproducto", detalle.getString("tipo"));
+            if(tipo.equals(EnumCJ.TIPO_BORDADO.getEstado())){// --> Nop esta reconociendo el tipo
+                json.add("puntadas", detalle.getJsonNumber("puntadas").bigDecimalValue())
+                        .add("valorPuntada", detalle.getJsonNumber("valorPuntada").bigDecimalValue())
+                        .add("valorDisenioCalculado", detalle.getJsonNumber("valorDisenioCalculado").bigDecimalValue())
+                        .add("valorDisenioFinal", detalle.getJsonNumber("valorDisenioFinal").bigDecimalValue());
+            }else{
+                json.add("valorunitario", detalle.getJsonNumber("valorFinal").bigDecimalValue());
             }
+            respJsonObject = this.productoController.persistProduct(json.build());
             return respJsonObject;
-            //return true;
-        }catch (Exception e){
+        } catch (Exception e) {
             response = Json.createObjectBuilder();
             response.add("error", EnumCJ.ESTADO_ERROR.getEstado());
-            log.log(Level.SEVERE, "ERROR TO CREATE NEW PRODUCT ",e);
+            log.log(Level.SEVERE, "ERROR TO CREATE NEW PRODUCT ", e);
             return response.build();
         }
     }
