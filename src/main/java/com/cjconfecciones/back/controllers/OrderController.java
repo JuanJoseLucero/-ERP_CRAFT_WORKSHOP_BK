@@ -1,9 +1,6 @@
 package com.cjconfecciones.back.controllers;
 
-import com.cjconfecciones.back.entities.Cliente;
-import com.cjconfecciones.back.entities.PedidoCabecera;
-import com.cjconfecciones.back.entities.PedidoDetalle;
-import com.cjconfecciones.back.entities.Persona;
+import com.cjconfecciones.back.entities.*;
 import com.cjconfecciones.back.util.ClientEndPoint;
 import com.cjconfecciones.back.util.EnumCJ;
 import com.cjconfecciones.back.util.Propiedades;
@@ -72,23 +69,25 @@ public class OrderController {
 
 
             /**Get detail orders **/
-            String sqlDetailOrder = "select " +
-                    " d.id , " +
-                    " d.unidades , " +
-                    " p.descripcion , " +
-                    " COALESCE (p.subtotalvalorpuntada,'0') , " +
-                    " d.total , " +
-                    " d.fecha, " +
-                    " p.valorunitario, " +
-                    " COALESCE (p.puntadas,'0') , " +
-                    " d.total , " +
-                    " p.tipoproducto  " +
-                    "from " +
-                    " cjconfecciones.tpedidodetalle as d, " +
-                    " cjconfecciones.tproducto as p " +
-                    "where " +
-                    " d.productoid = p.id  " +
-                    " and d.ccabecera = :ccabecera";
+            String sqlDetailOrder = "select   " +
+                    "                     d.id as codigocabecera, " +
+                    "                     d.unidades ,  " +
+                    "                     p.descripcion ,  " +
+                    "                     d.total as subtotal,  " +
+                    "                     d.fecha,  " +
+                    "                     p.valorunitario,  " +
+                    "                     p.tipoproducto, " +
+                    "                     COALESCE (p.puntadas,'0') as puntadas, " +
+                    "                     COALESCE (p.valorpuntada,'0') as valorpuntada, " +
+                    "                     COALESCE (p.valordiseniocalculado,'0') as valordiseniocalculado, " +
+                    "                     COALESCE (p.valordiseniofinal,'0') as valordiseniofinal,  " +
+                    "                     p.id  " +
+                    "                    from  " +
+                    "                     cjconfecciones.tpedidodetalle as d,  " +
+                    "                     cjconfecciones.tproducto as p  " +
+                    "                    where  " +
+                    "                     d.productoid = p.id   " +
+                    "                     and d.ccabecera = :ccabecera ";
             Query query = em.createNativeQuery(sqlDetailOrder);
             query.setParameter("ccabecera",id);
             List<Object[]> resultados = query.getResultList();
@@ -98,13 +97,15 @@ public class OrderController {
                 obj.add("id", Integer.parseInt(String.valueOf(object[0])));
                 obj.add("unidades", Integer.parseInt(String.valueOf(object[1])));
                 obj.add("descripcion", String.valueOf(object[2]));
-                obj.add("valorUnitario", new BigDecimal(String.valueOf(object[3])));
-                obj.add("total",  new BigDecimal(String.valueOf(object[4])));
-                obj.add("fecha", String.valueOf(object[5]));
-                obj.add("valorFinal", String.valueOf(object[6]));
+                obj.add("subTotal",  new BigDecimal(String.valueOf(object[3])));
+                obj.add("fecha", String.valueOf(object[4]));
+                obj.add("valorUnitario", new BigDecimal(String.valueOf(object[5])));
+                obj.add("tipo", String.valueOf(object[6]));
                 obj.add("puntadas", String.valueOf(object[7]));
-                obj.add("subValorFactura", String.valueOf(object[8]));
-                obj.add("tipo", String.valueOf(object[9]));
+                obj.add("valorPuntada", String.valueOf(object[8]));
+                obj.add("valorDisenioCalculado", String.valueOf(object[9]));
+                obj.add("valorDisenioFinal", String.valueOf(object[10]));
+                obj.add("idProducto", new BigDecimal(String.valueOf(object[11])));
                 arrayBuilder.add(obj);
             }
             jsonObjectBuilder.add("lstDetailBill", arrayBuilder);
@@ -328,17 +329,17 @@ public class OrderController {
                         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
                         pedidoDetalle.setFecha(sdf.parse(detalle.getString("fechaCadena")));
                         pedidoDetalle.setUnidades(detalle.getJsonNumber("unidades").bigDecimalValue());
-//                        pedidoDetalle.setDescripcion(detalle.getString("descripcion"));
-//                        detalleConsolidado = detalleConsolidado.concat(",").concat(pedidoDetalle.getDescripcion());
-//                        pedidoDetalle.setVunitario(detalle.getJsonNumber("valorUnitario").bigDecimalValue());
-//                        pedidoDetalle.setValorunitariofinal(detalle.getJsonNumber("valorFinal").bigDecimalValue());
-                        pedidoDetalle.setTotal(detalle.getJsonNumber("total").bigDecimalValue());
-//                        pedidoDetalle.setPuntadas(detalle.getJsonNumber("puntadas").bigDecimalValue());
+                        pedidoDetalle.setTotal(detalle.getJsonNumber("subTotal").bigDecimalValue());
                         pedidoDetalle.setCcabecera(pedidoCabecera.getId());
-//                        pedidoDetalle.setSubvalorfactura(detalle.getJsonNumber("subValorFactura").bigDecimalValue());
-//                        pedidoDetalle.setTipo(detalle.getString("tipo"));
                         em.merge(pedidoDetalle);
 
+                        Producto producto = em.find(Producto.class,detalle.getInt("idProducto"));
+                        if(producto != null){
+                            log.info("Producto encontrado");
+                            producto.setDescripcion(detalle.getString("descripcion"));
+                            producto.setValorunitario(detalle.getJsonNumber("valorUnitario").bigDecimalValue());
+                            em.merge(producto);
+                        }
                     }
                 }else{
                     log.info("NUEVO PEDIDO DETALLE");
@@ -346,15 +347,8 @@ public class OrderController {
                     pedidoDetalle = new PedidoDetalle();
                     pedidoDetalle.setFecha(new Date());
                     pedidoDetalle.setUnidades(detalle.getJsonNumber("unidades").bigDecimalValue());
-//                    pedidoDetalle.setDescripcion(detalle.getString("descripcion"));
-//                    detalleConsolidado = detalleConsolidado.concat(",").concat(pedidoDetalle.getDescripcion());
-//                    pedidoDetalle.setVunitario(detalle.getJsonNumber("valorUnitario") !=null ?detalle.getJsonNumber("valorUnitario").bigDecimalValue():BigDecimal.ZERO);
-//                    pedidoDetalle.setValorunitariofinal(detalle.getJsonNumber("valorFinal").bigDecimalValue());
-                    pedidoDetalle.setTotal(detalle.getJsonNumber("total")!=null?detalle.getJsonNumber("total").bigDecimalValue():BigDecimal.ZERO);
-//                    pedidoDetalle.setPuntadas(detalle.getJsonNumber("puntadas")!=null?detalle.getJsonNumber("puntadas").bigDecimalValue():BigDecimal.ZERO);
+                    pedidoDetalle.setTotal(detalle.getJsonNumber("subTotal")!=null?detalle.getJsonNumber("subTotal").bigDecimalValue():BigDecimal.ZERO);
                     pedidoDetalle.setCcabecera(pedidoCabecera.getId());
-//                    pedidoDetalle.setSubvalorfactura(detalle.getJsonNumber("subValorFactura").bigDecimalValue());
-//                    pedidoDetalle.setTipo(detalle.getString("tipo"));
                     pedidoDetalle.setProductoid(createProduct.getJsonNumber("codeId").intValue());
                     em.persist(pedidoDetalle);
                 }
@@ -404,7 +398,7 @@ public class OrderController {
                         .add("valorDisenioCalculado", detalle.getJsonNumber("valorDisenioCalculado").bigDecimalValue())
                         .add("valorDisenioFinal", detalle.getJsonNumber("valorDisenioFinal").bigDecimalValue());
             }else{
-                json.add("valorunitario", detalle.getJsonNumber("valorFinal").bigDecimalValue());
+                json.add("valorunitario", detalle.getJsonNumber("valorUnitario").bigDecimalValue());
             }
             respJsonObject = this.productoController.persistProduct(json.build());
             return respJsonObject;
