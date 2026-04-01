@@ -1,10 +1,15 @@
 package com.cjconfecciones.back.controllers;
 
 import com.cjconfecciones.back.entities.*;
+import com.cjconfecciones.back.integrations.AsyncEmailSender;
+import com.cjconfecciones.back.integrations.IntegracionTercero;
 import com.cjconfecciones.back.util.ClientEndPoint;
 import com.cjconfecciones.back.util.EnumCJ;
 import com.cjconfecciones.back.util.Propiedades;
 import com.cjconfecciones.back.util.Util;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import jakarta.enterprise.context.RequestScoped;
@@ -19,6 +24,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -272,7 +278,12 @@ public class OrderController {
                 persona.setNombre(requestObject.getString("nombres"));
                 persona.setTelefono(requestObject.getString("telefono"));
                 persona.setDireccion(requestObject.getString("direccion"));
+                persona.setEmail(requestObject.getString("email"));
                 em.persist(persona);
+            }if (personaSearch.getEmail()==null || !personaSearch.getEmail().trim().isEmpty()){
+                personaSearch.setEmail(requestObject.getString("email"));
+                em.merge(personaSearch);
+                log.info("MAIL ACTUALIZADO CORRECTAMENTE");
             }
 
             Cliente cliente = new Cliente();
@@ -356,13 +367,16 @@ public class OrderController {
             log.info("REGISTRO GUARDADO CORRECTAMENTE");
             t.commit();
             /** Envio de notificacion */
+            /**
             HashMap<String,Object> map = new HashMap<>();
             map.put("celular",propiedades.getParametrosProperties("notificationNumber"));
             map.put("orderId",String.valueOf(pedidoCabecera.getId()).concat("-").concat(personaSearch.getNombre()!=null?personaSearch.getNombre():persona.getNombre()));
             map.put("status","NUEVA");
             //JsonObject jsonObjectResponse = apiRestClient.consumirServicosWebWS(JsonObject.class, propiedades,map,"1");
+            */
 
             /** Envio de notificacion cliente*/
+            /**
             SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
             HashMap<String,Object> mapCliente = new HashMap<>();
             String celularCliente = "593".concat(personaSearch.getTelefono()!=null?personaSearch.getTelefono():persona.getTelefono());
@@ -371,7 +385,15 @@ public class OrderController {
             map.put("date",  formatter.format(pedidoCabecera.getFecha()));
             map.put("detalle",detalleConsolidado);
             //jsonObjectResponse = apiRestClient.consumirServicosWebWS(JsonObject.class, propiedades,map,"2");
+            */
 
+            /**
+             * Logica de envio de correos
+             */
+
+            if(personaSearch.getEmail()!=null && !personaSearch.getEmail().isEmpty()){
+                enviarMail(personaSearch,pedidoCabecera);
+            }
             response = Json.createObjectBuilder().add("error","0");
         }catch (Exception e){
             log.log(Level.SEVERE, "ERROR WHEN STORING THE NEW ORDER",e);
@@ -379,6 +401,59 @@ public class OrderController {
             t.rollback();
         }
         return  response.build();
+    }
+
+    private void enviarMail(Persona persona, PedidoCabecera pedidoCabecera){
+        try{
+            Map<String, String> headers = Map.of(
+                    "accept", "application/json",
+                    "api-key","",
+                    "content-type", "application/json"
+            );
+
+            IntegracionTercero servicio = IntegracionFactory.crear("brevo",
+                    "https://api.brevo.com/v3/smtp/email",
+                    headers);
+
+            servicio.connectar();
+
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode payload = mapper.createObjectNode();
+
+            //Sender
+            ObjectNode sender = mapper.createObjectNode();
+            sender.put("name","CJCONFECCIONES");
+            sender.put("email","cjconfecciones@percha.online");
+            payload.put("sender",sender);
+
+            //Destinatario
+            ArrayNode toArray = mapper.createArrayNode();
+            ObjectNode to = mapper.createObjectNode();
+            to.put("email",persona.getEmail());
+            to.put("name",persona.getNombre());
+            toArray.add(to);
+            payload.set("to",toArray);
+
+            payload.put("subject","Pedido Registrado: ".concat(String.valueOf(pedidoCabecera.getId())).concat(" ").concat(persona.getNombre()) );
+            payload.put("htmlContent","<html><body><h1>Buenos dias estimad@:"
+                    .concat(persona.getNombre())
+                    .concat(" se ha registrado un pedido con el codigo: ")
+                    .concat(String.valueOf(pedidoCabecera.getId()))
+                    .concat("</h1></body></html>"));
+
+            //Async
+            AsyncEmailSender asyncEmailSender = new AsyncEmailSender();
+            asyncEmailSender.enviarAsync(() ->{
+                try{
+                    servicio.enviar(payload);
+                } catch(Exception e){
+                    log.log(Level.SEVERE, "ERROR AL ENVIAR EL MAIL ",e);
+                }
+            });
+            asyncEmailSender.shutdown();
+        }catch (Exception e){
+            log.log(Level.SEVERE,"ERROR Al ENVIAR EL MAIL ",e);
+        }
     }
 
     private JsonObject createNewProduct(JsonObject detalle) {

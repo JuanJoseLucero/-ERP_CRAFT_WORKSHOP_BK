@@ -9,11 +9,11 @@ import java.util.logging.Logger;
 public class AbstractIntegracionTercero <T> implements IntegracionTercero{
 
     protected String apiUrl;
-    protected Map<String,String> headres;
+    protected Map<String,String> headers;
 
     public AbstractIntegracionTercero(String apiUrl, Map<String, String> headers ){
         this.apiUrl = apiUrl;
-        this.headres = headers;
+        this.headers = headers;
     }
 
     protected HttpURLConnection crearConexion(String metodo, String urlStr) throws Exception{
@@ -21,8 +21,8 @@ public class AbstractIntegracionTercero <T> implements IntegracionTercero{
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
         conn.setRequestMethod(metodo);
-        conn.setDoInput(true);
-        headres.forEach(conn::setRequestProperty);
+        conn.setDoOutput(true);
+        headers.forEach(conn::setRequestProperty);
 
         return conn;
     }
