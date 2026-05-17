@@ -247,7 +247,8 @@ public class OrderController {
                 .add("identificacion",persona.getCedula())
                 .add("nombres",persona.getNombre())
                 .add("direccion", persona.getDireccion())
-                .add("telefono",persona.getTelefono());
+                .add("telefono",persona.getTelefono())
+                .add("email", persona.getEmail() != null ? persona.getEmail() : "");
             }else{
                 log.info("CLIENT NOT FOUND");
                 response = Json.createObjectBuilder().add("error","1");
@@ -260,6 +261,11 @@ public class OrderController {
     }
 
 
+    /**
+     * TODO: Enviar el pedido adjunto en el mail
+     * @param requestObject
+     * @return
+     */
     public JsonObject newOrder(JsonObject requestObject){
         Gson gson = new Gson();
         log.info("ENTRADA ".concat(gson.toJson(requestObject)));
