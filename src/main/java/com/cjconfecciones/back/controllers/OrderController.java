@@ -18,7 +18,30 @@ import jakarta.inject.Named;
 import jakarta.json.*;
 import jakarta.persistence.*;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.StringReader;
+import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import net.sf.jasperreports.engine.JREmptyDataSource;
+import net.sf.jasperreports.engine.JasperExportManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.engine.util.JRLoader;
+
+import com.cjconfecciones.back.reports.AbonoReporte;
+import com.cjconfecciones.back.reports.DetalleReporte;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -308,7 +331,7 @@ public class OrderController {
                 cliente.setIdpersona(String.valueOf(celdas[1]));
             }
 
-            PedidoCabecera pedidoCabecera = em.find(PedidoCabecera.class, Integer.parseInt(requestObject.containsKey("pedidoId")? requestObject.getString("pedidoId"):"0"));
+            PedidoCabecera haz pedidoCabecera = em.find(PedidoCabecera.class, Integer.parseInt(requestObject.containsKey("pedidoId")? requestObject.getString("pedidoId"):"0"));
             if(pedidoCabecera == null){
                 pedidoCabecera = new PedidoCabecera();
                 pedidoCabecera.setCcliente(cliente.getId());
@@ -512,7 +535,7 @@ public class OrderController {
         return  response.build();
     }
 
-    public void getComprobante(PedidoCabecera pedidoCabecera) {
+    public String getComprobante(PedidoCabecera pedidoCabecera) {
         EntityManager em = emf.createEntityManager();
         try {
             PedidoCabecera pc = em.find(PedidoCabecera.class, pedidoCabecera.getId());
@@ -530,10 +553,10 @@ public class OrderController {
                 queryCliente.setParameter("idCliente", pc.getCcliente());
                 List<Object[]> clienteData = queryCliente.getResultList();
 
+                Persona persona = null;
                 if (!clienteData.isEmpty()) {
                     String idPersona = String.valueOf(clienteData.get(0)[1]);
-
-                    Persona persona = em.find(Persona.class, idPersona);
+                    persona = em.find(Persona.class, idPersona);
                     if (persona != null) {
                         log.info("=== DATOS DEL CLIENTE ===");
                         log.info("Cédula: " + persona.getCedula());
@@ -545,18 +568,22 @@ public class OrderController {
                 }
 
                 Query queryDetalles = em.createNativeQuery(
-                        "SELECT id, unidades, total, fecha, productoid, ccabecera " +
-                        "FROM cjconfecciones.tpedidodetalle WHERE ccabecera = :ccabecera");
+                        "SELECT d.id, d.unidades, d.total, p.descripcion, p.valorunitario " +
+                        "FROM cjconfecciones.tpedidodetalle d " +
+                        "JOIN cjconfecciones.tproducto p ON d.productoid = p.id " +
+                        "WHERE d.ccabecera = :ccabecera");
                 queryDetalles.setParameter("ccabecera", pc.getId());
                 List<Object[]> detalles = queryDetalles.getResultList();
 
-                log.info("=== DETALLES DEL PEDIDO (Total: " + detalles.size() + ") ===");
+                List<DetalleReporte> listaDetalles = new ArrayList<>();
                 for (Object[] d : detalles) {
-                    log.info("  Detalle ID: " + d[0] +
-                            ", Unidades: " + d[1] +
-                            ", Total: " + d[2] +
-                            ", Fecha: " + d[3] +
-                            ", Producto ID: " + d[4]);
+                    String unidades = String.valueOf(d[1]);
+                    String descripcion = String.valueOf(d[3]);
+                    String valorUnitario = String.valueOf(d[4]);
+                    String total = String.valueOf(d[2]);
+                    String id = String.valueOf(d[0]);
+                    listaDetalles.add(new DetalleReporte(unidades, descripcion, valorUnitario, total, id));
+                    log.info("  Detalle: " + descripcion + " - " + unidades + " x " + valorUnitario);
                 }
 
                 Query queryAbonos = em.createNativeQuery(
@@ -565,19 +592,52 @@ public class OrderController {
                 queryAbonos.setParameter("ccabecera", pc.getId());
                 List<Object[]> abonos = queryAbonos.getResultList();
 
-                log.info("=== ABONOS DEL PEDIDO (Total: " + abonos.size() + ") ===");
                 BigDecimal totalAbonos = BigDecimal.ZERO;
+                List<AbonoReporte> listaAbonos = new ArrayList<>();
                 for (Object[] a : abonos) {
-                    log.info("  Abono ID: " + a[0] +
-                            ", Fecha: " + a[1] +
-                            ", Valor: " + a[2]);
+                    String id = String.valueOf(a[0]);
+                    String fecha = String.valueOf(a[1]);
+                    String valor = String.valueOf(a[2]);
+                    listaAbonos.add(new AbonoReporte(id, fecha, valor));
                     totalAbonos = totalAbonos.add(new BigDecimal(String.valueOf(a[2])));
+                    log.info("  Abono: " + id + " - " + fecha + " - " + valor);
                 }
                 log.info("  Total Abonado: " + totalAbonos);
 
+                SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+                Map<String, Object> parametros = new HashMap<>();
+                parametros.put("identification", persona != null ? persona.getCedula() : "");
+                parametros.put("name", persona != null ? persona.getNombre() : "");
+                parametros.put("direction", persona != null ? persona.getDireccion() : "");
+                parametros.put("date", pc.getFecha() != null ? sdf.format(pc.getFecha()) : "");
+                parametros.put("total", pc.getTotal() != null ? pc.getTotal().toString() : "0");
+                parametros.put("abonos", totalAbonos.toString());
+                parametros.put("saldo", pc.getTotal().subtract(totalAbonos).toString());
+
+                JRBeanCollectionDataSource dsDetalles = new JRBeanCollectionDataSource(listaDetalles);
+                JRBeanCollectionDataSource dsAbonos = new JRBeanCollectionDataSource(listaAbonos);
+                parametros.put("ds", dsDetalles);
+                parametros.put("dsAbono", dsAbonos);
+
+                InputStream reportStream = getClass().getResourceAsStream("/reports/BillPrintCJ.jasper");
+                JasperReport reporte = (JasperReport) JRLoader.loadObject(reportStream);
+                JasperPrint print = JasperFillManager.fillReport(reporte, parametros, new JREmptyDataSource());
+
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                JasperExportManager.exportReportToPdfStream(print, baos);
+                byte[] pdfBytes = baos.toByteArray();
+                String base64 = Base64.getEncoder().encodeToString(pdfBytes);
+
+                log.info("=== REPORTE GENERADO EXITOSAMENTE ===");
+                return base64;
+
             } else {
                 log.info("Cabecera no encontrada con ID: " + pedidoCabecera.getId());
+                return null;
             }
+        } catch (Exception e) {
+            log.log(Level.SEVERE, "ERROR AL GENERAR REPORTE", e);
+            return null;
         } finally {
             em.close();
         }
