@@ -511,4 +511,75 @@ public class OrderController {
         }
         return  response.build();
     }
+
+    public void getComprobante(PedidoCabecera pedidoCabecera) {
+        EntityManager em = emf.createEntityManager();
+        try {
+            PedidoCabecera pc = em.find(PedidoCabecera.class, pedidoCabecera.getId());
+            if (pc != null) {
+                log.info("=== CABECERA DEL PEDIDO ===");
+                log.info("ID: " + pc.getId());
+                log.info("ID Cliente: " + pc.getCcliente());
+                log.info("Fecha: " + pc.getFecha());
+                log.info("Fecha Real: " + pc.getFreal());
+                log.info("Total: " + pc.getTotal());
+                log.info("Estado: " + pc.getEstado());
+
+                Query queryCliente = em.createNativeQuery(
+                        "SELECT id, idpersona FROM cjconfecciones.tcliente WHERE id = :idCliente");
+                queryCliente.setParameter("idCliente", pc.getCcliente());
+                List<Object[]> clienteData = queryCliente.getResultList();
+
+                if (!clienteData.isEmpty()) {
+                    String idPersona = String.valueOf(clienteData.get(0)[1]);
+
+                    Persona persona = em.find(Persona.class, idPersona);
+                    if (persona != null) {
+                        log.info("=== DATOS DEL CLIENTE ===");
+                        log.info("Cédula: " + persona.getCedula());
+                        log.info("Nombre: " + persona.getNombre());
+                        log.info("Dirección: " + persona.getDireccion());
+                        log.info("Teléfono: " + persona.getTelefono());
+                        log.info("Email: " + (persona.getEmail() != null ? persona.getEmail() : "N/A"));
+                    }
+                }
+
+                Query queryDetalles = em.createNativeQuery(
+                        "SELECT id, unidades, total, fecha, productoid, ccabecera " +
+                        "FROM cjconfecciones.tpedidodetalle WHERE ccabecera = :ccabecera");
+                queryDetalles.setParameter("ccabecera", pc.getId());
+                List<Object[]> detalles = queryDetalles.getResultList();
+
+                log.info("=== DETALLES DEL PEDIDO (Total: " + detalles.size() + ") ===");
+                for (Object[] d : detalles) {
+                    log.info("  Detalle ID: " + d[0] +
+                            ", Unidades: " + d[1] +
+                            ", Total: " + d[2] +
+                            ", Fecha: " + d[3] +
+                            ", Producto ID: " + d[4]);
+                }
+
+                Query queryAbonos = em.createNativeQuery(
+                        "SELECT id, fecha, valor, ccabecera " +
+                        "FROM cjconfecciones.tabono WHERE ccabecera = :ccabecera");
+                queryAbonos.setParameter("ccabecera", pc.getId());
+                List<Object[]> abonos = queryAbonos.getResultList();
+
+                log.info("=== ABONOS DEL PEDIDO (Total: " + abonos.size() + ") ===");
+                BigDecimal totalAbonos = BigDecimal.ZERO;
+                for (Object[] a : abonos) {
+                    log.info("  Abono ID: " + a[0] +
+                            ", Fecha: " + a[1] +
+                            ", Valor: " + a[2]);
+                    totalAbonos = totalAbonos.add(new BigDecimal(String.valueOf(a[2])));
+                }
+                log.info("  Total Abonado: " + totalAbonos);
+
+            } else {
+                log.info("Cabecera no encontrada con ID: " + pedidoCabecera.getId());
+            }
+        } finally {
+            em.close();
+        }
+    }
 }
