@@ -60,4 +60,11 @@ public class OrderServices {
     public JsonObject changeStatus (JsonObject jsonObject){
         return orderController.changeStatus(jsonObject);
     }
+
+    @GET
+    @Path("/getComprobante/{pedidoId}")
+    @Produces("application/json")
+    public JsonObject getComprobante(@PathParam("pedidoId") String pedidoId) {
+        return orderController.getComprobanteJson(pedidoId);
+    }
 }

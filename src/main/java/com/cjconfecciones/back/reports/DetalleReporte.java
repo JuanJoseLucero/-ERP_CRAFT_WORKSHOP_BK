@@ -1,28 +1,49 @@
 package com.cjconfecciones.back.reports;
 
+import java.math.BigDecimal;
+
 public class DetalleReporte {
-    private String unidades;
+    private BigDecimal unidades;
     private String descripcion;
-    private String valorUnitarioFinal;
-    private String subValorFactura;
+    private BigDecimal valorUnitario;
+    private BigDecimal subTotal;
     private String id;
 
-    public DetalleReporte(String unidades, String descripcion, String valorUnitarioFinal, String subValorFactura, String id) {
+    public DetalleReporte(BigDecimal unidades, String descripcion, BigDecimal valorUnitario, BigDecimal subTotal, String id) {
         this.unidades = unidades;
         this.descripcion = descripcion;
-        this.valorUnitarioFinal = valorUnitarioFinal;
-        this.subValorFactura = subValorFactura;
+        this.valorUnitario = valorUnitario;
+        this.subTotal = subTotal;
         this.id = id;
     }
 
-    public String getUnidades() { return unidades; }
-    public void setUnidades(String unidades) { this.unidades = unidades; }
+    public BigDecimal getUnidades() {
+        return unidades;
+    }
+
+    public void setUnidades(BigDecimal unidades) {
+        this.unidades = unidades;
+    }
+
     public String getDescripcion() { return descripcion; }
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
-    public String getValorUnitarioFinal() { return valorUnitarioFinal; }
-    public void setValorUnitarioFinal(String valorUnitarioFinal) { this.valorUnitarioFinal = valorUnitarioFinal; }
-    public String getSubValorFactura() { return subValorFactura; }
-    public void setSubValorFactura(String subValorFactura) { this.subValorFactura = subValorFactura; }
+
+    public BigDecimal getValorUnitario() {
+        return valorUnitario;
+    }
+
+    public void setValorUnitario(BigDecimal valorUnitario) {
+        this.valorUnitario = valorUnitario;
+    }
+
+    public BigDecimal getSubTotal() {
+        return subTotal;
+    }
+
+    public void setSubTotal(BigDecimal subTotal) {
+        this.subTotal = subTotal;
+    }
+
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 }

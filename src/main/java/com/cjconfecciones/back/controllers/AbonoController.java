@@ -57,7 +57,7 @@ public class AbonoController {
         JsonObjectBuilder response = Json.createObjectBuilder();
         try{
             EntityManager em = emf.createEntityManager();
-            EntityTransaction transaction = em.getTransaction();
+            EntityTransaction transaction = em.getTransaction();//JJ
             transaction.begin();
             Abono abono = new Abono();
             String fechaCadena = requestObject.getString("fecha");

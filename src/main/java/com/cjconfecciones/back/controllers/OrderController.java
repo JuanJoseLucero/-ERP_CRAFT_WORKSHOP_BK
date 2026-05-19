@@ -331,7 +331,7 @@ public class OrderController {
                 cliente.setIdpersona(String.valueOf(celdas[1]));
             }
 
-            PedidoCabecera haz pedidoCabecera = em.find(PedidoCabecera.class, Integer.parseInt(requestObject.containsKey("pedidoId")? requestObject.getString("pedidoId"):"0"));
+            PedidoCabecera pedidoCabecera = em.find(PedidoCabecera.class, Integer.parseInt(requestObject.containsKey("pedidoId")? requestObject.getString("pedidoId"):"0"));
             if(pedidoCabecera == null){
                 pedidoCabecera = new PedidoCabecera();
                 pedidoCabecera.setCcliente(cliente.getId());
@@ -535,6 +535,29 @@ public class OrderController {
         return  response.build();
     }
 
+    public JsonObject getComprobanteJson(String pedidoId) {
+        JsonObjectBuilder response = Json.createObjectBuilder();
+        EntityManager em = emf.createEntityManager();
+        try {
+            Integer id = Integer.parseInt(pedidoId);
+            PedidoCabecera pc = em.find(PedidoCabecera.class, id);
+            if (pc == null) {
+                return response.add("error", "1").add("message", "Pedido no encontrado").build();
+            }
+            String base64 = getComprobante(pc);
+            if (base64 != null) {
+                return response.add("error", "0").add("base64", base64).build();
+            } else {
+                return response.add("error", "1").add("message", "Error al generar reporte").build();
+            }
+        } catch (Exception e) {
+            log.log(Level.SEVERE, "ERROR AL GENERAR REPORTE JSON", e);
+            return response.add("error", "1").add("message", e.getMessage()).build();
+        } finally {
+            em.close();
+        }
+    }
+
     public String getComprobante(PedidoCabecera pedidoCabecera) {
         EntityManager em = emf.createEntityManager();
         try {
@@ -577,10 +600,10 @@ public class OrderController {
 
                 List<DetalleReporte> listaDetalles = new ArrayList<>();
                 for (Object[] d : detalles) {
-                    String unidades = String.valueOf(d[1]);
+                    BigDecimal unidades = new BigDecimal(String.valueOf(d[1]));
                     String descripcion = String.valueOf(d[3]);
-                    String valorUnitario = String.valueOf(d[4]);
-                    String total = String.valueOf(d[2]);
+                    BigDecimal valorUnitario = new BigDecimal(String.valueOf(d[4]));
+                    BigDecimal total = new BigDecimal(String.valueOf(d[2]));
                     String id = String.valueOf(d[0]);
                     listaDetalles.add(new DetalleReporte(unidades, descripcion, valorUnitario, total, id));
                     log.info("  Detalle: " + descripcion + " - " + unidades + " x " + valorUnitario);
@@ -597,7 +620,7 @@ public class OrderController {
                 for (Object[] a : abonos) {
                     String id = String.valueOf(a[0]);
                     String fecha = String.valueOf(a[1]);
-                    String valor = String.valueOf(a[2]);
+                    BigDecimal valor = new BigDecimal(String.valueOf(a[2]));
                     listaAbonos.add(new AbonoReporte(id, fecha, valor));
                     totalAbonos = totalAbonos.add(new BigDecimal(String.valueOf(a[2])));
                     log.info("  Abono: " + id + " - " + fecha + " - " + valor);
