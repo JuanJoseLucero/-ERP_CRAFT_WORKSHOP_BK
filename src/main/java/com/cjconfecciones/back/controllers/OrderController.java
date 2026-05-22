@@ -470,11 +470,30 @@ public class OrderController {
                     .concat(String.valueOf(pedidoCabecera.getId()))
                     .concat("</h1></body></html>"));
 
+            String base64Pdf = getComprobante(pedidoCabecera);
+            if (base64Pdf != null) {
+                ArrayNode attachments = mapper.createArrayNode();
+                ObjectNode attachment = mapper.createObjectNode();
+                attachment.put("content", base64Pdf);
+                SimpleDateFormat sdfArchivo = new SimpleDateFormat("yyyyMMdd");
+                String nombreLimpio = persona.getNombre().replaceAll("[\\\\/:*?\"<>|]", "_");
+                String fechaStr = sdfArchivo.format(pedidoCabecera.getFecha());
+                String totalStr = pedidoCabecera.getTotal().toString();
+                String nombreArchivo = nombreLimpio + "_" + fechaStr + "_" + totalStr;
+                attachment.put("name", nombreArchivo + ".pdf");
+                attachments.add(attachment);
+                payload.set("attachment", attachments);
+            }
+
             //Async
             AsyncEmailSender asyncEmailSender = new AsyncEmailSender();
+            String finalBase64Pdf = base64Pdf;
             asyncEmailSender.enviarAsync(() ->{
                 try{
                     servicio.enviar(payload);
+                    if (finalBase64Pdf != null) {
+                        log.info("Correo enviado con comprobante adjunto para pedido: " + pedidoCabecera.getId());
+                    }
                 } catch(Exception e){
                     log.log(Level.SEVERE, "ERROR AL ENVIAR EL MAIL ",e);
                 }

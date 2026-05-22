@@ -4,7 +4,7 @@
              xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd"
              version="3.0">
 
-    <persistence-unit name="unitPersistence" transaction-type="JTA" >
+    <persistence-unit name="unitPersistence" transaction-type="RESOURCE_LOCAL" >
         <jta-data-source>java:jboss/datasources/CJ</jta-data-source>
         <properties>
             <property name="jakarta.persistence.jdbc.driver" value="org.postgresql.Driver" />
