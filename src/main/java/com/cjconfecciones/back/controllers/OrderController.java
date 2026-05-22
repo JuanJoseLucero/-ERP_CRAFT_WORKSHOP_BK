@@ -684,4 +684,94 @@ public class OrderController {
             em.close();
         }
     }
+
+    public JsonObject notificarCobros() {
+        JsonObjectBuilder response = Json.createObjectBuilder();
+        EntityManager em = emf.createEntityManager();
+        try {
+            String sql = "SELECT c.id, c.fecha, tp.nombre, c.estado, c.total " +
+                         "FROM cjconfecciones.tpedidocabecera c " +
+                         "JOIN cjconfecciones.tcliente cli ON c.ccliente = cli.id " +
+                         "JOIN cjconfecciones.tpersona tp ON cli.idpersona = tp.cedula " +
+                         "WHERE c.estado IN ('A', 'AB') " +
+                         "ORDER BY c.id DESC";
+            Query query = em.createNativeQuery(sql);
+            List<Object[]> resultados = query.getResultList();
+
+            StringBuilder html = new StringBuilder();
+            html.append("<html><body>");
+            html.append("<h2>Trabajos por Cobrar</h2>");
+            html.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse;'>");
+            html.append("<tr style='background-color:#f2f2f2;'>");
+            html.append("<th>Pedido ID</th><th>Fecha</th><th>Cliente</th><th>Estado</th><th>Total</th>");
+            html.append("</tr>");
+
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+            for (Object[] row : resultados) {
+                html.append("<tr>");
+                html.append("<td>").append(row[0]).append("</td>");
+                html.append("<td>").append(row[1] != null ? sdf.format(row[1]) : "").append("</td>");
+                html.append("<td>").append(row[2] != null ? row[2] : "").append("</td>");
+                html.append("<td>").append(row[3] != null ? row[3] : "").append("</td>");
+                html.append("<td>").append(row[4] != null ? row[4] : "").append("</td>");
+                html.append("</tr>");
+            }
+            html.append("</table>");
+            html.append("</body></html>");
+
+            Map<String, String> headers = Map.of(
+                    "accept", "application/json",
+                    "api-key","",
+                    "content-type", "application/json"
+            );
+
+            IntegracionTercero servicio = IntegracionFactory.crear("brevo",
+                    "https://api.brevo.com/v3/smtp/email",
+                    headers);
+
+            servicio.connectar();
+
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode payload = mapper.createObjectNode();
+
+            ObjectNode sender = mapper.createObjectNode();
+            sender.put("name", "CJCONFECCIONES");
+            sender.put("email", "cjconfecciones@percha.online");
+            payload.set("sender", sender);
+
+            ArrayNode toArray = mapper.createArrayNode();
+            ObjectNode to = mapper.createObjectNode();
+            String destinatario = propiedades.getParametrosProperties("emailNotificacionCobros");
+            to.put("email", destinatario);
+            to.put("name", "Notificacion Cobros");
+            toArray.add(to);
+            payload.set("to", toArray);
+
+            SimpleDateFormat sdfAsunto = new SimpleDateFormat("dd/MM/yyyy");
+            payload.put("subject", "Trabajos por Cobrar - " + sdfAsunto.format(new Date()));
+            payload.put("htmlContent", html.toString());
+
+            AsyncEmailSender asyncEmailSender = new AsyncEmailSender();
+            asyncEmailSender.enviarAsync(() -> {
+                try {
+                    servicio.enviar(payload);
+                    log.info("Notificacion de cobros enviada a: " + destinatario);
+                } catch (Exception e) {
+                    log.log(Level.SEVERE, "ERROR AL ENVIAR NOTIFICACION DE COBROS", e);
+                }
+            });
+            asyncEmailSender.shutdown();
+
+            response.add("error", "0");
+            response.add("message", "Notificacion enviada a: " + destinatario);
+            response.add("totalPedidos", resultados.size());
+        } catch (Exception e) {
+            log.log(Level.SEVERE, "ERROR EN NOTIFICAR COBROS", e);
+            response.add("error", "1");
+            response.add("message", e.getMessage());
+        } finally {
+            em.close();
+        }
+        return response.build();
+    }
 }

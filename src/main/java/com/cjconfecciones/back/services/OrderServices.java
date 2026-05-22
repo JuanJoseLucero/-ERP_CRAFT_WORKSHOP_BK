@@ -67,4 +67,11 @@ public class OrderServices {
     public JsonObject getComprobante(@PathParam("pedidoId") String pedidoId) {
         return orderController.getComprobanteJson(pedidoId);
     }
+
+    @GET
+    @Path("/notificarCobros")
+    @Produces("application/json")
+    public JsonObject notificarCobros() {
+        return orderController.notificarCobros();
+    }
 }
