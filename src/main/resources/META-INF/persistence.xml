@@ -9,10 +9,10 @@
         <properties>
             <property name="jakarta.persistence.jdbc.driver" value="org.postgresql.Driver" />
             <property name="jakarta.persistence.jdbc.url" value="jdbc:postgresql://localhost:5432/perchaonline?currentSchema=cjconfecciones" />
-<!--            <property name="jakarta.persistence.jdbc.user" value="percha" />-->
-            <property name="jakarta.persistence.jdbc.user" value="jlucero" />
-<!--            <property name="jakarta.persistence.jdbc.password" value="4G3TR0224n41dPercha"/>-->
-            <property name="jakarta.persistence.jdbc.password" value="4G3TR0224n41d"/>
+            <property name="jakarta.persistence.jdbc.user" value="percha" />
+<!--            <property name="jakarta.persistence.jdbc.user" value="jlucero" />-->
+            <property name="jakarta.persistence.jdbc.password" value="4G3TR0224n41dPercha"/>
+<!--            <property name="jakarta.persistence.jdbc.password" value="4G3TR0224n41d"/>-->
             <!-- Properties for Hibernate -->
             <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
             <property name="hibernate.hbm2ddl.auto" value="none"/>

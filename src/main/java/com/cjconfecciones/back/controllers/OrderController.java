@@ -343,8 +343,19 @@ public class OrderController {
                 SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
                 pedidoCabecera.setFecha(sdf.parse(fechaCadena));
                 pedidoCabecera.setFreal(new Date());
+                pedidoCabecera.setEstadoConfeccion(1);
                 em.persist(pedidoCabecera);
                 log.info("STORING CABECERA");
+
+                HistorialEstadoPedido historial = new HistorialEstadoPedido();
+                historial.setCpedido(pedidoCabecera.getId());
+                historial.setCestado(1);
+                historial.setFecha(new Date());
+                historial.setUsuario(requestObject.containsKey("usuario") ? requestObject.getString("usuario") : "SISTEMA");
+                historial.setObservacion("Pedido ingresado");
+                historial.setNotificacionMal((short) 0);
+                historial.setNotificacionMovil((short) 0);
+                em.persist(historial);
             }else{
                 log.info("pedidoCabecera found");
                 pedidoCabecera.setTotal(requestObject.getJsonNumber("total").bigDecimalValue());

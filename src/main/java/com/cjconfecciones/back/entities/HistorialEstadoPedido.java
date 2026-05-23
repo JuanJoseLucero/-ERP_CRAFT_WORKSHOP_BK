@@ -1,13 +1,11 @@
 package com.cjconfecciones.back.entities;
 
-
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.util.Date;
 
 @AllArgsConstructor
@@ -15,18 +13,16 @@ import java.util.Date;
 @Getter
 @Setter
 @Entity
-@Table(name = "tpedidocabecera" , schema = "cjconfecciones")
-public class PedidoCabecera {
+@Table(name = "thistorialestadopedido", schema = "cjconfecciones")
+public class HistorialEstadoPedido {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
+    private Integer cpedido;
+    private Integer cestado;
     private Date fecha;
-    private BigDecimal total;
-    private String estado;
-    private Integer ccliente;
-    private Date freal;
-    private Integer estadoConfeccion;
-
-
-
+    private String usuario;
+    private String observacion;
+    private Short notificacionMal;
+    private Short notificacionMovil;
 }
