@@ -173,19 +173,21 @@ public class OrderController {
             String finicial = requestObject.getString("finicial");
             String ffinal = requestObject.getString("ffinal");
             EntityManager entityManager = emf.createEntityManager();
-            String sqlQuery ="select c.id , c.fecha as fechaEntrega, c.total, tp.nombre, tp.direccion, tp.telefono , STRING_AGG(tpro.descripcion ,', ') , c.freal, c.estado      " +
-                    "                     from cjconfecciones.tpedidocabecera as c,     " +
+            String sqlQuery ="select c.id , c.fecha as fechaEntrega, c.total, tp.nombre, tp.direccion, tp.telefono , STRING_AGG(tpro.descripcion ,', ') , c.freal, c.estado,      " +
+                    "                       e.nombre as estadoconfeccion " +
+                    "                     from cjconfecciones.tpedidocabecera as c " +
+                    "                       LEFT JOIN cjconfecciones.testadopedido e ON c.estadoconfeccion = e.id,     " +
                     "                       cjconfecciones.tpedidodetalle as d,     " +
                     "                       cjconfecciones.tcliente as cli,     " +
                     "                       cjconfecciones.tpersona as tp,     " +
-                    "                       cjconfecciones.tproducto as tpro "+
+                    "                       cjconfecciones.tproducto as tpro " +
                     "                     where  c.id = d.ccabecera     " +
                     "                     and c.ccliente = cli.id     " +
                     "                     and cli.idpersona = tp.cedula     " +
                     "                     and d.productoid = tpro.id " +
                     "                     and c.estado not in ('E') " +
                     "                     and c.freal between to_date(:finicial,'dd-MM-yyyy') and to_date(:ffinal,'dd-MM-yyyy') " +
-                    "                     group by c.id , c.fecha, c.total, tp.nombre, tp.direccion,tp.telefono     " +
+                    "                     group by c.id , c.fecha, c.total, tp.nombre, tp.direccion,tp.telefono, c.estadoconfeccion, e.nombre     " +
                     "                      order by c.id desc ";
             Query query = entityManager.createNativeQuery(sqlQuery);
             query.setParameter("finicial",finicial);
@@ -204,8 +206,23 @@ public class OrderController {
                 obj.add("detalle", String.valueOf(resultado[6]));
                 obj.add("freal", String.valueOf(resultado[7]));
                 obj.add("estado", String.valueOf(resultado[8]));
+                obj.add("estadoconfeccion", resultado[9] != null ? String.valueOf(resultado[9]) : "");
                 arrayBuilder.add(obj);
             }
+
+            Query queryEstados = entityManager.createNativeQuery(
+                "SELECT id, nombre FROM cjconfecciones.testadopedido ORDER BY id"
+            );
+            List<Object[]> lstEstados = queryEstados.getResultList();
+            JsonArrayBuilder estadosArray = Json.createArrayBuilder();
+            for (Object[] e : lstEstados) {
+                JsonObjectBuilder obj = Json.createObjectBuilder();
+                obj.add("id", Integer.parseInt(String.valueOf(e[0])));
+                obj.add("nombre", String.valueOf(e[1]));
+                estadosArray.add(obj);
+            }
+            jsonBuilder.add("lstEstados", estadosArray);
+
             jsonBuilder.add("pedidos", arrayBuilder);
             entityManager.close();
         }catch (Exception e){
@@ -214,7 +231,6 @@ public class OrderController {
         }
         return jsonBuilder.build();
     }
-
 
     public JsonObject getOrders(){
         JsonObjectBuilder jsonBuilder = Json.createObjectBuilder();
