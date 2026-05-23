@@ -74,4 +74,12 @@ public class OrderServices {
     public JsonObject notificarCobros() {
         return orderController.notificarCobros();
     }
+
+    @POST
+    @Path("/cambiarEstadoConfeccion")
+    @Produces("application/json")
+    @Consumes("application/json")
+    public JsonObject cambiarEstadoConfeccion(JsonObject jsonObject){
+        return orderController.cambiarEstadoConfeccion(jsonObject);
+    }
 }

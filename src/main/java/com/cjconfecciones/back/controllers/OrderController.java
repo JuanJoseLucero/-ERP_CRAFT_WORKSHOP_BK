@@ -174,7 +174,8 @@ public class OrderController {
             String ffinal = requestObject.getString("ffinal");
             EntityManager entityManager = emf.createEntityManager();
             String sqlQuery ="select c.id , c.fecha as fechaEntrega, c.total, tp.nombre, tp.direccion, tp.telefono , STRING_AGG(tpro.descripcion ,', ') , c.freal, c.estado,      " +
-                    "                       e.nombre as estadoconfeccion " +
+                    "                       e.nombre as estadoconfeccion,      " +
+                    "                       c.estadoconfeccion as estadoconfeccionId " +
                     "                     from cjconfecciones.tpedidocabecera as c " +
                     "                       LEFT JOIN cjconfecciones.testadopedido e ON c.estadoconfeccion = e.id,     " +
                     "                       cjconfecciones.tpedidodetalle as d,     " +
@@ -207,6 +208,7 @@ public class OrderController {
                 obj.add("freal", String.valueOf(resultado[7]));
                 obj.add("estado", String.valueOf(resultado[8]));
                 obj.add("estadoconfeccion", resultado[9] != null ? String.valueOf(resultado[9]) : "");
+                obj.add("estadoconfeccionId", resultado[10] != null ? Integer.parseInt(String.valueOf(resultado[10])) : 0);
                 arrayBuilder.add(obj);
             }
 
@@ -796,6 +798,46 @@ public class OrderController {
             log.log(Level.SEVERE, "ERROR EN NOTIFICAR COBROS", e);
             response.add("error", "1");
             response.add("message", e.getMessage());
+        } finally {
+            em.close();
+        }
+        return response.build();
+    }
+
+    public JsonObject cambiarEstadoConfeccion(JsonObject requestObject){
+        JsonObjectBuilder response = Json.createObjectBuilder();
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction t = em.getTransaction();
+        try {
+            t.begin();
+            Integer pedidoId = Integer.parseInt(requestObject.getString("pedidoId"));
+            Integer estadoId = Integer.parseInt(requestObject.getString("estadoId"));
+
+            PedidoCabecera pc = em.find(PedidoCabecera.class, pedidoId);
+            if (pc == null) {
+                response.add("error", "1").add("message", "Pedido no encontrado");
+                return response.build();
+            }
+
+            pc.setEstadoConfeccion(estadoId);
+            em.merge(pc);
+
+            HistorialEstadoPedido historial = new HistorialEstadoPedido();
+            historial.setCpedido(pedidoId);
+            historial.setCestado(estadoId);
+            historial.setFecha(new Date());
+            historial.setUsuario(requestObject.containsKey("usuario") ? requestObject.getString("usuario") : "SISTEMA");
+            historial.setObservacion("Cambio de estado de confeccion");
+            historial.setNotificacionMal((short) 0);
+            historial.setNotificacionMovil((short) 0);
+            em.persist(historial);
+
+            t.commit();
+            response.add("error", "0");
+        } catch (Exception e) {
+            t.rollback();
+            log.log(Level.SEVERE, "ERROR AL CAMBIAR ESTADO CONFECCION", e);
+            response.add("error", "1");
         } finally {
             em.close();
         }
