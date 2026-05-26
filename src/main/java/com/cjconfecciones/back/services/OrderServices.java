@@ -82,4 +82,11 @@ public class OrderServices {
     public JsonObject cambiarEstadoConfeccion(JsonObject jsonObject){
         return orderController.cambiarEstadoConfeccion(jsonObject);
     }
+
+    @GET
+    @Path("/getOrdersFinalizadosPendientes")
+    @Produces("application/json")
+    public JsonObject getOrdersFinalizadosPendientes(){
+        return orderController.getOrdersFinalizadosPendientes();
+    }
 }

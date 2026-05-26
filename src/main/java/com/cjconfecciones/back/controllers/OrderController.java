@@ -389,6 +389,7 @@ public class OrderController {
             JsonArray detallesJson = requestObject.getJsonArray("lstDetailBill");
             for (int i = 0; i< detallesJson.size(); i++){
                 JsonObject detalle  =detallesJson.getJsonObject(i);
+                detalleConsolidado += detalle.getString("descripcion") + " (" + detalle.getJsonNumber("unidades").intValue() + " uds), ";
                 PedidoDetalle pedidoDetalle = new PedidoDetalle();
                 if (detalle.containsKey("id")){
                     log.info("ID FOUND");
@@ -425,25 +426,26 @@ public class OrderController {
             log.info("REGISTRO GUARDADO CORRECTAMENTE");
             t.commit();
             /** Envio de notificacion */
-            /**
+            /*
             HashMap<String,Object> map = new HashMap<>();
             map.put("celular",propiedades.getParametrosProperties("notificationNumber"));
             map.put("orderId",String.valueOf(pedidoCabecera.getId()).concat("-").concat(personaSearch.getNombre()!=null?personaSearch.getNombre():persona.getNombre()));
             map.put("status","NUEVA");
-            //JsonObject jsonObjectResponse = apiRestClient.consumirServicosWebWS(JsonObject.class, propiedades,map,"1");
+            JsonObject jsonObjectResponse = apiRestClient.consumirServicosWebWS(JsonObject.class, propiedades,map,"1");
             */
 
             /** Envio de notificacion cliente*/
-            /**
+
             SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
             HashMap<String,Object> mapCliente = new HashMap<>();
             String celularCliente = "593".concat(personaSearch.getTelefono()!=null?personaSearch.getTelefono():persona.getTelefono());
             log.info("CELULAR CLIENTE ".concat(celularCliente));
+            HashMap<String,Object> map = new HashMap<>();
             map.put("celular",celularCliente);
             map.put("date",  formatter.format(pedidoCabecera.getFecha()));
             map.put("detalle",detalleConsolidado);
-            //jsonObjectResponse = apiRestClient.consumirServicosWebWS(JsonObject.class, propiedades,map,"2");
-            */
+            JsonObject jsonObjectResponse = apiRestClient.consumirServicosWebWS(JsonObject.class, propiedades,map,"2");
+
 
             /**
              * Logica de envio de correos
@@ -838,6 +840,108 @@ public class OrderController {
             t.rollback();
             log.log(Level.SEVERE, "ERROR AL CAMBIAR ESTADO CONFECCION", e);
             response.add("error", "1");
+        } finally {
+            em.close();
+        }
+        return response.build();
+    }
+
+    public JsonObject getOrdersFinalizadosPendientes(){
+        JsonObjectBuilder response = Json.createObjectBuilder();
+        EntityManager em = emf.createEntityManager();
+        try {
+            String sql = "SELECT c.id, c.total, tp.nombre, tp.telefono, " +
+                         "c.estado, COALESCE(SUM(a.valor), 0) as totalAbonado, " +
+                         "(c.total - COALESCE(SUM(a.valor), 0)) as saldo " +
+                         "FROM cjconfecciones.tpedidocabecera c " +
+                         "JOIN cjconfecciones.tcliente cli ON c.ccliente = cli.id " +
+                         "JOIN cjconfecciones.tpersona tp ON cli.idpersona = tp.cedula " +
+                         "LEFT JOIN cjconfecciones.tabono a ON a.ccabecera = c.id " +
+                         "WHERE c.estadoconfeccion = 3 " +
+                         "AND c.estado IN ('A', 'AB') " +
+                         "GROUP BY c.id, c.total, tp.nombre, tp.telefono, c.estado " +
+                         "ORDER BY c.id DESC";
+            Query query = em.createNativeQuery(sql);
+            List<Object[]> resultados = query.getResultList();
+
+            if (resultados.isEmpty()) {
+                return response.add("error", 0).add("notificados", "").build();
+            }
+
+            StringBuilder html = new StringBuilder();
+            html.append("<html><body>");
+            html.append("<h2>Pedidos Finalizados Pendientes de Cobro</h2>");
+            html.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse;'>");
+            html.append("<tr style='background-color:#f2f2f2;'>");
+            html.append("<th>Pedido</th><th>Cliente</th><th>Total</th><th>Abonado</th><th>Saldo</th><th>Estado Pago</th>");
+            html.append("</tr>");
+
+            for (Object[] r : resultados) {
+                String estadoPago = "A".equals(String.valueOf(r[4])) ? "ABIERTO" : "ABONADO";
+                html.append("<tr>");
+                html.append("<td>").append(r[0]).append("</td>");
+                html.append("<td>").append(r[2] != null ? r[2] : "").append("</td>");
+                html.append("<td>").append(r[1]).append("</td>");
+                html.append("<td>").append(r[5]).append("</td>");
+                html.append("<td>").append(r[6]).append("</td>");
+                html.append("<td>").append(estadoPago).append("</td>");
+                html.append("</tr>");
+            }
+            html.append("</table>");
+            html.append("</body></html>");
+
+            String destinatarios = propiedades.getParametrosProperties("emailNotificacionConfeccion");
+            String[] emails = destinatarios.split(";");
+
+            Map<String, String> headers = Map.of(
+                    "accept", "application/json",
+                    "api-key","",
+                    "content-type", "application/json"
+            );
+
+            IntegracionTercero servicio = IntegracionFactory.crear("brevo",
+                    "https://api.brevo.com/v3/smtp/email",
+                    headers);
+
+            servicio.connectar();
+
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode payload = mapper.createObjectNode();
+
+            ObjectNode sender = mapper.createObjectNode();
+            sender.put("name", "CJCONFECCIONES");
+            sender.put("email", "cjconfecciones@percha.online");
+            payload.set("sender", sender);
+
+            ArrayNode toArray = mapper.createArrayNode();
+            for (String email : emails) {
+                ObjectNode to = mapper.createObjectNode();
+                to.put("email", email.trim());
+                toArray.add(to);
+            }
+            payload.set("to", toArray);
+
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+            payload.put("subject", "Pedidos Finalizados Pendientes - " + sdf.format(new Date()));
+            payload.put("htmlContent", html.toString());
+
+            AsyncEmailSender asyncEmailSender = new AsyncEmailSender();
+            asyncEmailSender.enviarAsync(() -> {
+                try {
+                    servicio.enviar(payload);
+                    log.info("Notificacion de confeccion enviada a: " + String.join(", ", emails));
+                } catch (Exception e) {
+                    log.log(Level.SEVERE, "ERROR AL ENVIAR NOTIFICACION DE CONFECCION", e);
+                }
+            });
+            asyncEmailSender.shutdown();
+
+            response.add("error", 0);
+            response.add("notificados", String.join(", ", emails));
+        } catch (Exception e) {
+            log.log(Level.SEVERE, "ERROR AL CONSULTAR PEDIDOS FINALIZADOS PENDIENTES", e);
+            response.add("error", 1);
+            response.add("notificados", "");
         } finally {
             em.close();
         }
