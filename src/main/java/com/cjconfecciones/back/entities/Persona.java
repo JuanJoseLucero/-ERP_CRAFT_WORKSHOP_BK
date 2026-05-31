@@ -18,7 +18,7 @@ import lombok.Setter;
 @Table(name = "TPERSONA", schema = "cjconfecciones")
 @NamedQuery(
         name = "Persona.buscarPorNombre",
-        query = "SELECT p FROM Persona p WHERE p.nombre LIKE :nombre"
+        query = "SELECT p FROM Persona p WHERE UPPER(p.nombre) LIKE UPPER(:nombre)"
 )
 public class Persona {
     @Id

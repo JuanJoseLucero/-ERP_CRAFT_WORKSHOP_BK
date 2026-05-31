@@ -79,6 +79,19 @@ public class ClientEndPoint {
         return json;
     }
 
+    public String plantillaMora(Map<String,Object> params, Propiedades propiedades){
+        String json = "";
+        try{
+            json = propiedades.getParametrosProperties("plantillaMora");
+            json = json.replace("{celular}", String.valueOf(params.get("celular")))
+                       .replace("{deuda}", String.valueOf(params.get("deuda")));
+            log.info("JSON DE WHATSSAPP MORA ".concat(json));
+        }catch (Exception e){
+            log.log(Level.SEVERE, "ERROR TO PLANTILLA MORA", e);
+        }
+        return json;
+    }
+
     public <T> T consumirServicosWebWS(Class<T> classResponse, Propiedades propiedades, Map<String,Object> params, String plantilla){
         String url = propiedades.getParametrosProperties("urlWhatsApp");
         String json = "";
@@ -88,6 +101,9 @@ public class ClientEndPoint {
                 break;
             case "2":
                 json = plantillaCliente(params,propiedades);
+                break;
+            case "3":
+                json = plantillaMora(params,propiedades);
                 break;
         }
         T response = null;

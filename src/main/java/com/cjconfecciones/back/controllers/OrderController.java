@@ -5,6 +5,7 @@ import com.cjconfecciones.back.integrations.AsyncEmailSender;
 import com.cjconfecciones.back.integrations.IntegracionTercero;
 import com.cjconfecciones.back.util.ClientEndPoint;
 import com.cjconfecciones.back.util.EnumCJ;
+import com.cjconfecciones.back.util.OrdenQuery;
 import com.cjconfecciones.back.util.Propiedades;
 import com.cjconfecciones.back.util.Util;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -850,18 +851,7 @@ public class OrderController {
         JsonObjectBuilder response = Json.createObjectBuilder();
         EntityManager em = emf.createEntityManager();
         try {
-            String sql = "SELECT c.id, c.total, tp.nombre, tp.telefono, " +
-                         "c.estado, COALESCE(SUM(a.valor), 0) as totalAbonado, " +
-                         "(c.total - COALESCE(SUM(a.valor), 0)) as saldo " +
-                         "FROM cjconfecciones.tpedidocabecera c " +
-                         "JOIN cjconfecciones.tcliente cli ON c.ccliente = cli.id " +
-                         "JOIN cjconfecciones.tpersona tp ON cli.idpersona = tp.cedula " +
-                         "LEFT JOIN cjconfecciones.tabono a ON a.ccabecera = c.id " +
-                         "WHERE c.estadoconfeccion = 3 " +
-                         "AND c.estado IN ('A', 'AB') " +
-                         "GROUP BY c.id, c.total, tp.nombre, tp.telefono, c.estado " +
-                         "ORDER BY c.id DESC";
-            Query query = em.createNativeQuery(sql);
+            Query query = em.createNativeQuery(OrdenQuery.PEDIDOS_FINALIZADOS_PENDIENTES);
             List<Object[]> resultados = query.getResultList();
 
             if (resultados.isEmpty()) {
@@ -942,6 +932,137 @@ public class OrderController {
             log.log(Level.SEVERE, "ERROR AL CONSULTAR PEDIDOS FINALIZADOS PENDIENTES", e);
             response.add("error", 1);
             response.add("notificados", "");
+        } finally {
+            em.close();
+        }
+        return response.build();
+    }
+
+    public JsonObject notificarWhatsAppFinalizadosPendientes(){
+        JsonObjectBuilder response = Json.createObjectBuilder();
+        EntityManager em = emf.createEntityManager();
+        try {
+            Query query = em.createNativeQuery(OrdenQuery.PEDIDOS_FINALIZADOS_PENDIENTES);
+            List<Object[]> resultados = query.getResultList();
+
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+            String fechaHora = sdf.format(new Date());
+
+            Map<String, Map<String, Object>> clientes = new HashMap<>();
+            for (Object[] r : resultados) {
+                String telefono = String.valueOf(r[3] != null ? r[3] : "");
+                if (telefono.isEmpty()) continue;
+                String nombre = String.valueOf(r[2] != null ? r[2] : "");
+                BigDecimal deuda = new BigDecimal(String.valueOf(r[6]));
+
+                if (!clientes.containsKey(telefono)) {
+                    Map<String, Object> cli = new HashMap<>();
+                    cli.put("nombre", nombre);
+                    cli.put("telefono", telefono);
+                    cli.put("deudaTotal", BigDecimal.ZERO);
+                    cli.put("pedidos", 0);
+                    cli.put("pedidosIds", new ArrayList<String>());
+                    clientes.put(telefono, cli);
+                }
+                Map<String, Object> cli = clientes.get(telefono);
+                cli.put("deudaTotal", ((BigDecimal) cli.get("deudaTotal")).add(deuda));
+                cli.put("pedidos", ((Integer) cli.get("pedidos")) + 1);
+                ((List<String>) cli.get("pedidosIds")).add(String.valueOf(r[0]));
+            }
+
+            int enviados = 0;
+            int fallidos = 0;
+
+            StringBuilder html = new StringBuilder();
+            html.append("<html><body>");
+            html.append("<h2>Informe de Notificaciones WhatsApp</h2>");
+            html.append("<p>Fecha: ").append(fechaHora).append("</p>");
+            html.append("<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse;'>");
+            html.append("<tr style='background-color:#f2f2f2;'>");
+            html.append("<th>Cliente</th><th>Teléfono</th><th>Deuda Total</th><th>Pedidos</th><th>IDs Pedidos</th><th>WhatsApp</th><th>Fecha/Hora</th>");
+            html.append("</tr>");
+
+            for (Map<String, Object> cli : clientes.values()) {
+                String telefono = (String) cli.get("telefono");
+                String deudaTotal = ((BigDecimal) cli.get("deudaTotal")).toString();
+                String estadoNotif = "FALLIDO";
+
+                try {
+                    HashMap<String,Object> params = new HashMap<>();
+                    params.put("celular", "593".concat(telefono));
+                    params.put("deuda", deudaTotal);
+                    apiRestClient.consumirServicosWebWS(Object.class, propiedades, params, "3");
+                    estadoNotif = "ENVIADO";
+                    enviados++;
+                } catch (Exception e) {
+                    log.log(Level.SEVERE, "ERROR WHATSAPP CLIENTE " + telefono, e);
+                    fallidos++;
+                }
+
+                html.append("<tr>");
+                html.append("<td>").append(cli.get("nombre")).append("</td>");
+                html.append("<td>").append(telefono).append("</td>");
+                html.append("<td>").append(deudaTotal).append("</td>");
+                html.append("<td>").append(cli.get("pedidos")).append("</td>");
+                html.append("<td>").append(String.join(", ", (List<String>) cli.get("pedidosIds"))).append("</td>");
+                html.append("<td>").append(estadoNotif).append("</td>");
+                html.append("<td>").append(fechaHora).append("</td>");
+                html.append("</tr>");
+            }
+            html.append("</table>");
+            html.append("<p>Total enviados: ").append(enviados)
+                .append(" | Total fallidos: ").append(fallidos).append("</p>");
+            html.append("</body></html>");
+
+            String destinatarios = propiedades.getParametrosProperties("emailNotificacionConfeccion");
+            String[] emails = destinatarios.split(";");
+
+            Map<String, String> headers = Map.of(
+                    "accept", "application/json",
+                    "api-key","",
+                    "content-type", "application/json"
+            );
+
+            IntegracionTercero servicio = IntegracionFactory.crear("brevo",
+                    "https://api.brevo.com/v3/smtp/email",
+                    headers);
+            servicio.connectar();
+
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode payload = mapper.createObjectNode();
+
+            ObjectNode sender = mapper.createObjectNode();
+            sender.put("name", "CJCONFECCIONES");
+            sender.put("email", "cjconfecciones@percha.online");
+            payload.set("sender", sender);
+
+            ArrayNode toArray = mapper.createArrayNode();
+            for (String email : emails) {
+                ObjectNode to = mapper.createObjectNode();
+                to.put("email", email.trim());
+                toArray.add(to);
+            }
+            payload.set("to", toArray);
+
+            payload.put("subject", "Informe de Notificaciones WhatsApp - " + fechaHora);
+            payload.put("htmlContent", html.toString());
+
+            AsyncEmailSender asyncEmailSender = new AsyncEmailSender();
+            asyncEmailSender.enviarAsync(() -> {
+                try {
+                    servicio.enviar(payload);
+                } catch (Exception e) {
+                    log.log(Level.SEVERE, "ERROR AL ENVIAR INFORME WHATSAPP", e);
+                }
+            });
+            asyncEmailSender.shutdown();
+
+            response.add("error", 0);
+            response.add("enviados", enviados);
+            response.add("fallidos", fallidos);
+        } catch (Exception e) {
+            log.log(Level.SEVERE, "ERROR EN NOTIFICAR WHATSAPP", e);
+            response.add("error", 1);
         } finally {
             em.close();
         }

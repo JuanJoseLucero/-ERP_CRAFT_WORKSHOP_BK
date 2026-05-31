@@ -81,7 +81,8 @@ public class ClienteController implements Serializable {
                     .add("cedula", p.getCedula())
                     .add("nombre", p.getNombre())
                     .add("telefono", p.getTelefono())
-                    .add("direccion",p.getDireccion()).build()
+                    .add("direccion",p.getDireccion())
+                    .add("email", p.getEmail() != null ? p.getEmail() : "").build()
             ).forEach(listaNombres::add);
             responseBuilder.add("error","0")
                     .add ("nombres", listaNombres);

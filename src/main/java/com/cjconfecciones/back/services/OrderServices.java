@@ -89,4 +89,11 @@ public class OrderServices {
     public JsonObject getOrdersFinalizadosPendientes(){
         return orderController.getOrdersFinalizadosPendientes();
     }
+
+    @GET
+    @Path("/notificarWhatsApp")
+    @Produces("application/json")
+    public JsonObject notificarWhatsApp() {
+        return orderController.notificarWhatsAppFinalizadosPendientes();
+    }
 }
