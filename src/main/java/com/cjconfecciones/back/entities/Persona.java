@@ -18,7 +18,7 @@ import lombok.Setter;
 @Table(name = "TPERSONA", schema = "cjconfecciones")
 @NamedQuery(
         name = "Persona.buscarPorNombre",
-        query = "SELECT p FROM Persona p WHERE UPPER(p.nombre) LIKE UPPER(:nombre)"
+        query = "SELECT p FROM Persona p WHERE UPPER(p.nombre) LIKE UPPER(:nombre) AND (p.activo IS NULL OR p.activo = true)"
 )
 public class Persona {
     @Id
@@ -27,4 +27,5 @@ public class Persona {
     private String telefono;
     private String direccion;
     private String email;
+    private Boolean activo;
 }

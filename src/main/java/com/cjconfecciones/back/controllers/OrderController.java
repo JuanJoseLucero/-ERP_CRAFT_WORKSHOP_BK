@@ -466,11 +466,10 @@ public class OrderController {
 
     private void enviarMail(Persona persona, PedidoCabecera pedidoCabecera){
         try{
-            Map<String, String> headers = Map.of(
-                    "accept", "application/json",
-                    "api-key","",
-                    "content-type", "application/json"
-            );
+            Map<String, String> headers = new HashMap<>();
+            headers.put("accept", "application/json");
+            headers.put("api-key", propiedades.getParametrosProperties("apiKeyBrevo"));
+            headers.put("content-type", "application/json");
 
             IntegracionTercero servicio = IntegracionFactory.crear("brevo",
                     "https://api.brevo.com/v3/smtp/email",
@@ -751,11 +750,10 @@ public class OrderController {
             html.append("</table>");
             html.append("</body></html>");
 
-            Map<String, String> headers = Map.of(
-                    "accept", "application/json",
-                    "api-key","",
-                    "content-type", "application/json"
-            );
+            Map<String, String> headers = new HashMap<>();
+            headers.put("accept", "application/json");
+            headers.put("api-key", propiedades.getParametrosProperties("apiKeyBrevo"));
+            headers.put("content-type", "application/json");
 
             IntegracionTercero servicio = IntegracionFactory.crear("brevo",
                     "https://api.brevo.com/v3/smtp/email",
@@ -883,11 +881,10 @@ public class OrderController {
             String destinatarios = propiedades.getParametrosProperties("emailNotificacionConfeccion");
             String[] emails = destinatarios.split(";");
 
-            Map<String, String> headers = Map.of(
-                    "accept", "application/json",
-                    "api-key","",
-                    "content-type", "application/json"
-            );
+            Map<String, String> headers = new HashMap<>();
+            headers.put("accept", "application/json");
+            headers.put("api-key", propiedades.getParametrosProperties("apiKeyBrevo"));
+            headers.put("content-type", "application/json");
 
             IntegracionTercero servicio = IntegracionFactory.crear("brevo",
                     "https://api.brevo.com/v3/smtp/email",
@@ -1017,11 +1014,10 @@ public class OrderController {
             String destinatarios = propiedades.getParametrosProperties("emailNotificacionConfeccion");
             String[] emails = destinatarios.split(";");
 
-            Map<String, String> headers = Map.of(
-                    "accept", "application/json",
-                    "api-key","",
-                    "content-type", "application/json"
-            );
+            Map<String, String> headers = new HashMap<>();
+            headers.put("accept", "application/json");
+            headers.put("api-key", propiedades.getParametrosProperties("apiKeyBrevo"));
+            headers.put("content-type", "application/json");
 
             IntegracionTercero servicio = IntegracionFactory.crear("brevo",
                     "https://api.brevo.com/v3/smtp/email",

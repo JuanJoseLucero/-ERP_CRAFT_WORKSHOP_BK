@@ -24,8 +24,6 @@ public class ClienteController implements Serializable {
     @PersistenceContext(unitName = "unitPersistence")
     private EntityManager em;
 
-    //private EntityManagerFactory emf = Persistence.createEntityManagerFactory("unitPersistence");
-
     Logger log = Logger.getLogger(ClienteController.class.getName());
 
     public void newClient (){
@@ -93,4 +91,135 @@ public class ClienteController implements Serializable {
         return responseBuilder.build();
     }
 
+    public JsonObject getAll(){
+        JsonObjectBuilder response = Json.createObjectBuilder();
+        try{
+            List<Persona> lista = em.createQuery("SELECT p FROM Persona p WHERE (p.activo IS NULL OR p.activo = true) ORDER BY p.nombre", Persona.class).getResultList();
+            JsonArrayBuilder arr = Json.createArrayBuilder();
+            for(Persona p : lista){
+                arr.add(Json.createObjectBuilder()
+                        .add("cedula", p.getCedula())
+                        .add("nombre", p.getNombre() != null ? p.getNombre() : "")
+                        .add("telefono", p.getTelefono() != null ? p.getTelefono() : "")
+                        .add("direccion", p.getDireccion() != null ? p.getDireccion() : "")
+                        .add("email", p.getEmail() != null ? p.getEmail() : ""));
+            }
+            response.add("error", "0").add("personas", arr);
+        }catch(Exception e){
+            log.log(Level.SEVERE, "ERROR EN getAll", e);
+            response.add("error", "1");
+        }
+        return response.build();
+    }
+
+    public JsonObject getById(JsonObject request){
+        JsonObjectBuilder response = Json.createObjectBuilder();
+        try{
+            String cedula = request.getString("cedula");
+            Persona p = em.find(Persona.class, cedula);
+            if(p == null){
+                response.add("error", "1").add("mensaje", "Cliente no encontrado");
+            }else{
+                response.add("error", "0")
+                        .add("cedula", p.getCedula())
+                        .add("nombre", p.getNombre() != null ? p.getNombre() : "")
+                        .add("telefono", p.getTelefono() != null ? p.getTelefono() : "")
+                        .add("direccion", p.getDireccion() != null ? p.getDireccion() : "")
+                        .add("email", p.getEmail() != null ? p.getEmail() : "");
+            }
+        }catch(Exception e){
+            log.log(Level.SEVERE, "ERROR EN getById", e);
+            response.add("error", "1");
+        }
+        return response.build();
+    }
+
+    public JsonObject create(JsonObject request){
+        JsonObjectBuilder response = Json.createObjectBuilder();
+        EntityManager emTrans = null;
+        try{
+            String cedula = request.getString("cedula");
+            if(em.find(Persona.class, cedula) != null){
+                response.add("error", "1").add("mensaje", "La cédula ya existe");
+                return response.build();
+            }
+            Persona p = new Persona();
+            p.setCedula(cedula);
+            p.setNombre(request.getString("nombre"));
+            p.setTelefono(request.containsKey("telefono") ? request.getString("telefono") : null);
+            p.setDireccion(request.containsKey("direccion") ? request.getString("direccion") : null);
+            p.setEmail(request.containsKey("email") ? request.getString("email") : null);
+            p.setActivo(true);
+            emTrans = emf.createEntityManager();
+            emTrans.getTransaction().begin();
+            emTrans.persist(p);
+            emTrans.getTransaction().commit();
+            response.add("error", "0").add("cedula", p.getCedula());
+        }catch(Exception e){
+            if(emTrans != null && emTrans.getTransaction().isActive()) emTrans.getTransaction().rollback();
+            log.log(Level.SEVERE, "ERROR EN create", e);
+            response.add("error", "1");
+        }finally{
+            if(emTrans != null) emTrans.close();
+        }
+        return response.build();
+    }
+
+    public JsonObject update(JsonObject request){
+        JsonObjectBuilder response = Json.createObjectBuilder();
+        EntityManager emTrans = null;
+        try{
+            String cedula = request.getString("cedula");
+            Persona p = em.find(Persona.class, cedula);
+            if(p == null){
+                response.add("error", "1").add("mensaje", "Cliente no encontrado");
+                return response.build();
+            }
+            if(request.containsKey("nombre")) p.setNombre(request.getString("nombre"));
+            if(request.containsKey("telefono")) p.setTelefono(request.getString("telefono"));
+            if(request.containsKey("direccion")) p.setDireccion(request.getString("direccion"));
+            if(request.containsKey("email")) p.setEmail(request.getString("email"));
+            emTrans = emf.createEntityManager();
+            emTrans.getTransaction().begin();
+            emTrans.merge(p);
+            emTrans.getTransaction().commit();
+            response.add("error", "0");
+        }catch(Exception e){
+            if(emTrans != null && emTrans.getTransaction().isActive()) emTrans.getTransaction().rollback();
+            log.log(Level.SEVERE, "ERROR EN update", e);
+            response.add("error", "1");
+        }finally{
+            if(emTrans != null) emTrans.close();
+        }
+        return response.build();
+    }
+
+    public JsonObject delete(JsonObject request){
+        JsonObjectBuilder response = Json.createObjectBuilder();
+        EntityManager emTrans = null;
+        try{
+            String cedula = request.getString("cedula");
+            Persona p = em.find(Persona.class, cedula);
+            if(p == null){
+                response.add("error", "1").add("mensaje", "Cliente no encontrado");
+                return response.build();
+            }
+            emTrans = emf.createEntityManager();
+            emTrans.getTransaction().begin();
+            Persona pManaged = emTrans.find(Persona.class, cedula);
+            if(pManaged != null) {
+                pManaged.setActivo(false);
+                emTrans.merge(pManaged);
+            }
+            emTrans.getTransaction().commit();
+            response.add("error", "0");
+        }catch(Exception e){
+            if(emTrans != null && emTrans.getTransaction().isActive()) emTrans.getTransaction().rollback();
+            log.log(Level.SEVERE, "ERROR EN delete", e);
+            response.add("error", "1");
+        }finally{
+            if(emTrans != null) emTrans.close();
+        }
+        return response.build();
+    }
 }
